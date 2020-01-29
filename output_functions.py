@@ -3,8 +3,7 @@ import global_variables as gv
 
 
 def save_init_snapshot():
-    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + '/init_snapshot' + str(gv.simulation)+'.csv',
-                             'wb'))
+    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + '/init_snapshot' + str(gv.simulation)+'.csv', 'wb'))
     for i in gv.indivs:
         writer.writerow(['i'] + [i[k] for k in range(len(i))])
     
@@ -17,8 +16,7 @@ def save_init_snapshot():
 
 
 def save_values():
-    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + '/values' + str(gv.simulation) + '.csv',
-                             'wb'))
+    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + '/values' + str(gv.simulation) + '.csv', 'wb'))
     title = ['type', 'id']
     for i in range(1, int(gv.tick)):
         title.append('t' + str(i))
@@ -54,8 +52,7 @@ def save_values():
 
 
 def save_data():
-    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + 
-                             '/data' + str(gv.simulation) + '.csv', 'wb'))
+    writer = csv.writer(open(gv.outputDir + 'sim' + str(gv.simulation) + '/data' + str(gv.simulation) + '.csv', 'wb'))
     for d in gv.data:
         writer.writerow(d)
     
