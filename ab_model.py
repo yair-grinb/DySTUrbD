@@ -10,9 +10,7 @@ import gc
 
 
 def leave_town(h_idx, b_idx):
-    hh_jobs = np.where(gv.jobs[:, -1] == gv.indivs[
-            (gv.indivs[:, 1] == gv.households[h_idx, 0]) &
-            (gv.indivs[:, 5] == 1), 7])[0]
+    hh_jobs = np.where(gv.jobs[:, -1] == gv.indivs[(gv.indivs[:, 1] == gv.households[h_idx, 0]) & (gv.indivs[:, 5] == 1), 7])[0]
     gv.jobs[hh_jobs, 2] = np.nan
     gv.jobs[hh_jobs][np.random.rand(len(hh_jobs)) <= mp.worker_residing_outside, 2] = 0
     
@@ -77,8 +75,7 @@ def find_new_home(h_idx, in_mig):
         
         if not in_mig:
             # compute preferences
-            soc_diff, dist_score = compute_diff(gv.households[h_idx],
-                                                gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1]][0])
+            soc_diff, dist_score = compute_diff(gv.households[h_idx], gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1]][0])
             if soc_diff is None:
                 soc_diff = random.random()
             if dist_score is None:
@@ -128,8 +125,7 @@ def change_lu(b, old, new):
                 # if found a home
                 if found:
                     # if new home is unoccupied - change land use
-                    home_idx = np.where(gv.bldgs[:, 0] == gv.households[
-                            residents[r], 1])[0][0]
+                    home_idx = np.where(gv.bldgs[:, 0] == gv.households[residents[r], 1])[0][0]
                     if gv.bldgs[home_idx, 1] == 0:
                         change_lu(home_idx, 0, 1)
                         # output - 'b', tick, id, old lu, new lu, old apartments, new apartments
@@ -145,15 +141,13 @@ def change_lu(b, old, new):
                     # output - 'i', tick, id, hh id, workforce participation old, workforce participation new, employed,
                     # old, employed new, employed locally old, employed locally new, income old, income new, job old,
                     # job new
-                    gv.data.append(['i', gv.tick, gv.indivs[e, 0], gv.households[
-                        gv.households[:, 0] == gv.indivs[e, 1], 0], 1, 1, 1, 0, 1, 0, gv.indivs[e, 11], 0.,
-                                    gv.indivs[e, 7], np.nan])
+                    gv.data.append(['i', gv.tick, gv.indivs[e, 0], gv.households[gv.households[:, 0] == gv.indivs[e, 1], 0], 
+                                    1, 1, 1, 0, 1, 0, gv.indivs[e, 11], 0., gv.indivs[e, 7], np.nan])
                     create_routines(e)
                 gv.indivs[emp_in_b[:, None], [3, 5, 7, 11]] = np.repeat([[0, 0, np.nan, 0]], len(emp_in_b), axis=0)
             for j in jobs_in_b:
                 # output - 'j', tick, id, bldg id old, bldg id new, worker id old, worker id new, wage
-                gv.data.append(['j', gv.tick, gv.jobs[j, -1], gv.bldgs[b, 0], np.nan, gv.jobs[j, 2], np.nan,
-                                gv.jobs[j, 0]])
+                gv.data.append(['j', gv.tick, gv.jobs[j, -1], gv.bldgs[b, 0], np.nan, gv.jobs[j, 2], np.nan, gv.jobs[j, 0]])
             gv.jobs = np.delete(gv.jobs, jobs_in_b, 0)
     
     if new != 0:
@@ -161,14 +155,12 @@ def change_lu(b, old, new):
         jobs_num = int(math.ceil(mp.jobs_per_m[int(new)] * gv.bldgs[b, 4]))
         new_jobs = np.array([[np.random.normal(mp.avgIncome, mp.stdIncome), b, np.nan] for i in range(jobs_num)])
         while np.any(new_jobs[:, 0] <= 0):
-            new_jobs[new_jobs[:, 0] <= 0, 0] = np.random.normal(mp.avgIncome, mp.stdIncome,
-                                                                len(new_jobs[new_jobs[:, 0] <= 0]))
+            new_jobs[new_jobs[:, 0] <= 0, 0] = np.random.normal(mp.avgIncome, mp.stdIncome, len(new_jobs[new_jobs[:, 0] <= 0]))
         # allocate in commuters to new jobs
         new_jobs[np.random.rand(len(new_jobs)) <= mp.worker_residing_outside, 2] = 0
         # define ids for new jobs
         job_id = int(np.max(gv.jobs[:, -1])) + 1
-        new_jobs = np.concatenate((new_jobs, np.array(range(job_id, job_id + len(new_jobs)))[
-                                             np.newaxis, :].T), axis=1)
+        new_jobs = np.concatenate((new_jobs, np.array(range(job_id, job_id + len(new_jobs)))[np.newaxis, :].T), axis=1)
         gv.jobs = np.concatenate([gv.jobs, new_jobs])
         for j in new_jobs:
             # output - 'j', tick, id, bldg id old, bldg id new, worker id old, worker id new, wage
@@ -193,8 +185,7 @@ def create_event():
     # identify effected buildings
     e_dists = ((gv.bldgs[:, 6] - center[0])**2. + (gv.bldgs[:, 7] - center[1])**2.)**0.5
     rand = np.random.rand(len(gv.bldgs))
-    effect_scores = e_dists * 10.**mp.intensity / (mp.event_m * gv.bldgs[:, 2] * np.abs(
-        np.log10(e_dists.astype(float))))
+    effect_scores = e_dists * 10.**mp.intensity / (mp.event_m * gv.bldgs[:, 2] * np.abs(np.log10(e_dists.astype(float))))
     gv.bldgs[rand <= effect_scores, 9] = 1.
     
     # compute secondary effects - roads, residents, jobs
@@ -249,8 +240,7 @@ def hh_step(h_idx):
 
 def find_wp(i):
     if "labor_market" not in mp.lags or gv.tick < mp.events_set[0] or ~np.any(
-            [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(
-                len(mp.events_set))]):
+            [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(len(mp.events_set))]):
         av_jobs = np.where(np.isnan(gv.jobs[:, 2]).astype(float))[0]
         home = gv.bldgs[gv.bldgs[:, 0] == gv.households[gv.households[:, 0] == gv.indivs[i, 1], 1]][0]
         max_d = np.max(np.ma.masked_invalid(gv.dists[home[13]]))
@@ -282,8 +272,7 @@ def find_wp(i):
             if 1 - math.exp(-gv.indivs[i, 10] / mp.search_length) > random.random():
                 # output - 'i', tick, id, hh id, workforce participation old, workforce participation new, employed old,
                 # employed new, employed locally old, employed locally new, income old, income new, job old, job new
-                gv.data.append(['i', gv.tick, gv.indivs[i, 0], gv.indivs[i, 1], 1, 1, 0, 1, 0, 0, 0, gv.indivs[i, 8],
-                                np.nan, 0])
+                gv.data.append(['i', gv.tick, gv.indivs[i, 0], gv.indivs[i, 1], 1, 1, 0, 1, 0, 0, 0, gv.indivs[i, 8], np.nan, 0])
                 gv.indivs[i, [3, 5, 7, 10, 11]] = [1, 0, 0, 0, gv.indivs[i, 8]]
                 create_routines(i)
             elif 1 - math.exp(-gv.indivs[i, 10] / mp.search_length) > random.random():
@@ -303,8 +292,7 @@ def road_step(r):
     if gv.roads[r, 6] == 0:
         nearby_bldgs = gv.bldgs[np.all(
             (gv.junctions_array[gv.bldgs[:, 13].astype(int)] == gv.roads_juncs[r, 0]), axis=1) |
-                                np.all((gv.junctions_array[
-                                            gv.bldgs[:, 13].astype(int)] == gv.roads_juncs[r, 1]), axis=1), 9]
+                                np.all((gv.junctions_array[gv.bldgs[:, 13].astype(int)] == gv.roads_juncs[r, 1]), axis=1), 9]
         if not np.any(nearby_bldgs):
             gv.roads[r, 6] = 1
             # output - 'r', tick, id, previous_state, new_state
@@ -329,15 +317,13 @@ def bldg_step(b):
         
         if gv.bldgs[b, 1] < 2 and gv.bldgs[b, 9] == 0 and 20 < score < 40:
             # output - 'b', tick, id, old lu, new lu, old apartments, new apartments
-            gv.data.append(['b', gv.tick, gv.bldgs[b, 0], gv.bldgs[b, 1], 3,
-                            (gv.bldgs[:, 1] == 1) * (gv.bldgs[:, 12]), 0])
+            gv.data.append(['b', gv.tick, gv.bldgs[b, 0], gv.bldgs[b, 1], 3, (gv.bldgs[:, 1] == 1) * (gv.bldgs[:, 12]), 0])
             change_lu(b, gv.bldgs[b, 1], 3)
         elif gv.bldgs[b, 1] == 3 and -40 < score < -20:
             gv.data.append(['b', gv.tick, gv.bldgs[b, 0], 3, 0, 0, 0])
             change_lu(b, 3, 0)
     
-    if gv.bldgs[b, 1] == 1 and len(
-            gv.households[gv.households[:, 1] == gv.bldgs[b, 0]]) == 0:
+    if gv.bldgs[b, 1] == 1 and len(gv.households[gv.households[:, 1] == gv.bldgs[b, 0]]) == 0:
         gv.data.append(['b', gv.tick, gv.bldgs[b, 0], 1, 0, gv.bldgs[:, 12], 0])
         change_lu(b, 1, 0)
     
@@ -383,8 +369,7 @@ def in_migration():
             gv.data.append(['h_im', gv.tick] + list(gv.households[-1]))
             if gv.bldgs[gv.bldgs[:, 0] == gv.households[-1, 1], 1] == 0:
                 change_lu(np.where(gv.bldgs[:, 0] == gv.households[-1, 1])[0][0], 0, 1)
-                gv.data.append(['b', gv.tick, gv.households[-1, 1], 0, 1, 0,
-                                gv.bldgs[gv.bldgs[:, 0] == gv.households[-1, 1], 12]])
+                gv.data.append(['b', gv.tick, gv.households[-1, 1], 0, 1, 0, gv.bldgs[gv.bldgs[:, 0] == gv.households[-1, 1], 12]])
                 
             for k in np.where(gv.indivs[:, 1] == gv.households[-1, 0])[0]:
                 if gv.indivs[i, 3] == 1 and gv.indivs[k, 5] == 0:
@@ -512,8 +497,7 @@ def general_step():
         zone_step(z)
 
     if "labor_market" not in mp.lags or gv.tick < mp.events_set[0] or ~np.any(
-            [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(
-                len(mp.events_set))]):
+            [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(len(mp.events_set))]):
         if len(gv.jobs[np.isnan(gv.jobs[:, 2].astype(float))]) > 0:
             labor_market_model()
     
