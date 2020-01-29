@@ -25,7 +25,6 @@ def create_world():
     t = time()
     # create zones - data structure: id, inMig, inMigCh, HPrice, prevPop, prevRes, prevNRes
     print 'getting zones', time() - t
-    # gv.zones = create_agent_class(gv.zonesFile, [17, 21, 26, -1], [0, 0, 0])
     gv.zones = create_agent_class(gv.zonesFile, range(4), [0, 0, 0])
     
     # create roads - data structure: id, juncA_x, juncA_y, juncB_x, juncB_y, length, free, civsHere, civsAvg
@@ -35,20 +34,16 @@ def create_world():
     # create road network graph and junctions
     gv.graph = nx.Graph()
     for i in range(gv.roads.shape[0]):
-        gv.graph.add_edge((gv.roads[i, 1], gv.roads[i, 2]), (gv.roads[i, 3], gv.roads[i, 4]), weight=gv.roads[i, 5],
-                          fid=gv.roads[i, 0])
+        gv.graph.add_edge((gv.roads[i, 1], gv.roads[i, 2]), (gv.roads[i, 3], gv.roads[i, 4]), weight=gv.roads[i, 5], fid=gv.roads[i, 0])
     gv.junctions = list(gv.graph.nodes)
     gv.junctions_array = np.array(gv.junctions)
-    gv.roads_juncs = np.array([[[float(row[i]), float(row[i+1])] for i in [1, 3]] for row in csv.reader(open(
-        gv.roadsFile))])
+    gv.roads_juncs = np.array([[[float(row[i]), float(row[i+1])] for i in [1, 3]] for row in csv.reader(open(gv.roadsFile))])
     gv.traff_hist = np.array([[] for i in range(gv.roads.shape[0])])
     compute_network()
         
-    # create individuals - data structure: id, hh, dis, employed, age, 
-    # employed locally, workforce participation, job, expected income,
+    # create individuals - data structure: id, hh, dis, employed, age, employed locally, workforce participation, job, expected income,
     # workplace preference, search length, income
     print 'getting individuals', time() - t
-    # gv.indivs = create_agent_class(gv.indivsFile, [0, 11, 2, 3, 6, 12, 3], [np.nan, 0, random.random(), 0, 0])
     gv.indivs = create_agent_class(gv.indivsFile, [0, 1, 2, 3, 4, 5, 3], [np.nan, 0, random.random(), 0, 0])
     gv.indivs[(gv.indivs[:, 3] == 0) & (gv.indivs[:, 5] == 1), 3] = 1
     gv.indivs[(gv.indivs[:, 3] == 1) & (gv.indivs[:, 6] == 0), 6] = 1
@@ -71,9 +66,8 @@ def create_world():
     
     mp.carChance = len(gv.households[gv.households[:, 3] == 1]) * 1. / len(gv.households)
     
-    # create buildings - data structure: id, lu, floors, stat, fs, init_lu, x, y, counter, dem, value, neigh,
-    # apartments, nearest_junc, m_price
-    # gv.bldgs = create_agent_class(gv.bldgsFile, [6, 2, 3, -4, 4, 2, -2, -1], [0, False, 0, 0, 0, None, 0])
+    # create buildings - data structure: id, lu, floors, stat, fs, init_lu, x, y, counter, dem, value, neigh, apartments, 
+    # nearest_junc, m_price
     gv.bldgs = create_agent_class(gv.bldgsFile, [0, 1, 2, 3, 4, 1, 5, 6], [0, False, 0, 0, 0, None, 0])
     
     # compute number of apartments
@@ -134,8 +128,7 @@ def create_world():
         home_junc = gv.bldgs[gv.bldgs[:, 0] == gv.households[gv.households[:, 0] == gv.indivs[c, 1], 1], -2].tolist()
         com_dist = gv.dists[home_junc][0][gv.bldgs[int(gv.jobs[j, 1]), -2]]
         max_dist = np.max(np.ma.masked_invalid(gv.dists[home_junc][0])) 
-        rel_wage = (gv.jobs[j, 0] - np.min(gv.jobs[av_jobs, 0])) / (np.max(gv.jobs[av_jobs, 0]) -
-                                                                    np.min(gv.jobs[av_jobs, 0]))
+        rel_wage = (gv.jobs[j, 0] - np.min(gv.jobs[av_jobs, 0])) / (np.max(gv.jobs[av_jobs, 0]) - np.min(gv.jobs[av_jobs, 0]))
         pref = (com_dist / max_dist + rel_wage) / 2.
         gv.indivs[c, [7, 8, 9, 11]] = [gv.jobs[j, -1], gv.jobs[j, 0], pref, gv.jobs[j, 0]]
         gv.jobs[j, 2] = gv.indivs[c, 0]
@@ -144,8 +137,7 @@ def create_world():
     del c, j, home_junc, com_dist, max_dist, rel_wage, pref, local_workers, av_jobs
     
     gv.indivs[(gv.indivs[:, 5] == 1) & (np.isnan(gv.indivs[:, 7])), 5:7] = [0, 0]
-    gv.indivs[(gv.indivs[:, 3] == 1) & (gv.indivs[:, 5] == 0), 11] = gv.indivs[(gv.indivs[:, 3] == 1) &
-                                                                               (gv.indivs[:, 5] == 0), 8]
+    gv.indivs[(gv.indivs[:, 3] == 1) & (gv.indivs[:, 5] == 0), 11] = gv.indivs[(gv.indivs[:, 3] == 1) & (gv.indivs[:, 5] == 0), 8]
     
     # update household income
     for h in range(len(gv.households)): 
