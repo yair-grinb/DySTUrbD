@@ -7,12 +7,38 @@ from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_ris
 from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
+from os import mkdir
 
-out_path = 'c:/users/solom/huji drive/projects/coronavirus/מחקר - יאיר ודני/outputs/'
+mkdir('outputs')
+scenario_name = ''
+
+
+def compute_R(agents, infected):
+    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - infected
+    sum_I = 0.
+    for i in range(1, recover+1):
+        sum_I += agents[agents[:, 17] == i].shape[0] * contagious_risk_day.pdf(i)
+    if sum_I > 0:
+        R = new_infections / sum_I
+    else:
+        R = 0
+    return R
+
+
+def compute_vis_R(agents):
+    new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
+    sum_I = 0.
+    for i in range(diagnosis+1, recover+1):
+        sum_I += agents[(agents[:, 13] == 4) & (agents[:, 17] == i)].shape[0] * contagious_risk_day.pdf(i - diagnosis)
+    if sum_I > 0:
+        R = new_known_infections / sum_I
+    else:
+        R = 0
+    return R
 
 
 for sim in range(1,31):
-    outputs = {'Sim':sim, 'Results':{'Stats':{}, 'Buildings':{}}}
+    outputs = {'Sim':sim, 'Results':{'Stats':{}, 'Buildings':{}, 'SAs':{}, 'IO_mat':{}}}
     T = time()
     t = time()
     agents, households, build, jobs = create_data('data/civ_withCar_bldg_np.csv', 'data/bldg_with_inst_orig.csv')
@@ -121,25 +147,29 @@ for sim in range(1,31):
                           
         print('day: ', day+1)
         print('\tinfected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]))
+        R = compute_R(agents, len(infected))
         new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - len(infected)
-        sum_I = 0.
-        for i in range(1, recover+1):
-            sum_I += agents[agents[:, 17] == i].shape[0] * contagious_risk_day.pdf(i)
-        if sum_I > 0:
-            R = new_infections / sum_I
-        else:
-            R = 0
+        agent_sas = build[np.where(agents[:, 7][:, None] == build[:, 0][None, :])[1], 3]
+        sas_R = {}
+        outputs['Results']['SAs'][day] = {}
+        for sa in np.unique(agent_sas):
+            sa_agents = agents[agent_sas == sa]
+            sa_infected = len(np.where(((sa_agents[:,13]==2) | (sa_agents[:,13]==4) | 
+                                        (sa_agents[:, 13]==3.5)) & (sa_agents[:, 16] != day))[0])
+            sas_R[sa] = compute_R(sa_agents, sa_infected)
+        outputs['Results']['SAs'][day]['R'] = sas_R
+        del sa_agents, sa_infected
         print('\tnew infections: ', new_infections)
         print('\tquarantined: ', len(agents[agents[:, 13]==3])+len(agents[agents[:,13]==4])+len(agents[agents[:,13]==3.5]))
         print('\tR: ', R)
+        vis_R = compute_vis_R(agents)
         new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
-        sum_I = 0.
-        for i in range(diagnosis+1, recover+1):
-            sum_I += agents[(agents[:, 13] == 4) & (agents[:, 17] == i)].shape[0] * contagious_risk_day.pdf(i - diagnosis)
-        if sum_I > 0:
-            vis_R = new_known_infections / sum_I
-        else:
-            vis_R = 0
+        sas_vis_R = {}
+        for sa in np.unique(agent_sas):
+            sa_agents = agents[agent_sas == sa]
+            sas_vis_R[sa] = compute_vis_R(sa_agents)
+        outputs['Results']['SAs'][day]['vis_R'] = sas_vis_R
+        del sa_agents
         agents[(agents[:, 13] == 3) & (agents[:, 19] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
         agents[(agents[:, 13] == 3.5) & (agents[:, 19] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
         agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5)) & (agents[:, 17] == diagnosis), 13] = 4 # sick agents begin quarantine after for days
@@ -180,9 +210,20 @@ for sim in range(1,31):
         del rand_cont, new_infected, new_infections, R, vis_R, #indices, indices2
         print('\t'+str(round(time()-t)))
         outputs['Results']['Stats'][day]['Time'] = time()-t
+        sas = np.unique(build[:, 3])
+        infect_mat = {sa:{sa2: 0 for sa2 in sas} for sa in sas}
+        infected_sas = agent_sas[agents[:, 16]==day]
+        infecting_sas = agent_sas[np.where(agents[agents[:, 16]==day, 21][:, None] ==
+                                           agents[:, 0][None, :])[1]]
+        if infecting_sas.size > 0:
+            for sa in sas:
+                counts = np.unique(infecting_sas[infected_sas == sa], return_counts=True)
+                for i in range(len(counts[0])):
+                    infect_mat[sa][counts[0][i]] = int(counts[1][i])
+        outputs['Results']['IO_mat'][day] = infect_mat
         day += 1
     print((time()- T)/3600)
     outputs['Results']['Infections chain'] = agents[:, [0, 16, 21]].tolist()
     outputs['Total_time'] = time()-T
-    with open(out_path + 'sim'+str(sim)+'_lockdown_norm0.025.json', 'w') as outfile:
+    with open('outputs/sim'+str(sim)+scenario_name, 'w') as outfile:
         json.dump(outputs, outfile)
