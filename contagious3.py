@@ -182,6 +182,7 @@ for sim in range(1,31):
         #     indices = np.append(indices,indices2)
         #     build[indices,10] = 0 
         # elif vis_R > 2: # if visible R is greater than 2 close all commercial and public buildings
+        #hi
         if vis_R > 1:
             build[build[:, 1] >= 3, 10] = 0 
         else: # if visible R smaller than 1 set all buildings as open
