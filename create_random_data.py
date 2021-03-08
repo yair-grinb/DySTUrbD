@@ -128,10 +128,15 @@ def create_data(ind_file, blds_file):
     agents = np.append(agents, epidemic, axis=1)
     
     #create more regular activities per agent
-    agents = np.append(agents, np.zeros((len(agents), 4)), axis= 1)
+    agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1)
     agents[:,18] = np.nan
     agents[agents[:, 8] == 1, 18] = np.random.choice(rel_etc, len(agents[agents[:, 8] == 1])) * np.random.randint(2, size=len(agents[agents[:, 8] == 1]))
     agents[agents[:, 8] == 0, 18] = np.random.choice(etc, len(agents[agents[:, 8] == 0])) * np.random.randint(2, size=len(agents[agents[:, 8] == 0]))
     agents[agents[:, 18] == 0, 18] = np.nan
+    
+    #add residence stat zone per agent
+    for b in build:
+        blds = agents[:, 7] == b[0]
+        agents[blds, 22] = b[3]
     
     return agents, households, build, jobs

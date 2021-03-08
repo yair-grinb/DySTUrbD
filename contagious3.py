@@ -180,6 +180,16 @@ for sim in range(1,31):
         education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
         religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
         
+        #differential quarantine
+        for s in sas_vis_R:
+            if sas_vis_R[s] > 1: #if R is greater than 1 in stat zone
+                build[(build[:,3] == s) & (build[:,1] >= 3), 10] = 0 #set public and commercial buildings as closed
+                bld_visits[:, 1:] = bld_visits[:, 1:] * (agents[:,22] != s).reshape((len(agents), 1)) #check if agents live in quarantined stat zone and if yes - all activities but first (home) become zero
+                bld_visits[bld_visits==0] = np.nan
+            else:
+              build[(build[:,3] == s) & (build[:,1] >= 3), 10] = 1 #if smaller than 1 set public and commercial buildings as open  
+        del s
+        
         if 1 < vis_R < 2: # if visible R is between 1 & 2  
             indices = np.random.choice(np.arange(build[build[:,1]>=3,10].size), replace=False,
                             size=int(build[build[:,1]>=3,10].size * 0.5)) 
