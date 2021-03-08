@@ -176,17 +176,33 @@ for sim in range(1,31):
         agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 5 # sick agents in quarantine recover 
         agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 5), 20] = 0
         print('\tVis_R:' ,vis_R)
-        # if 1 < vis_R < 2: # if visible R is between 1 & 2 close half of the commercial and public buildings 
-        #     indices = np.random.choice(np.arange(build[build[:,1]>=3,10].size), replace=False,
-        #                    size=int(build[build[:,1]>=3,10].size * 0.5))
-        #     indices = np.append(indices,indices2)
-        #     build[indices,10] = 0 
-        # elif vis_R > 2: # if visible R is greater than 2 close all commercial and public buildings
-        #hi
-        if vis_R > 1:
-            build[build[:, 1] >= 3, 10] = 0 
-        else: # if visible R smaller than 1 set all buildings as open
-            build[:,10] = 1
+        
+        education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
+        religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
+        
+        if 1 < vis_R < 2: # if visible R is between 1 & 2  
+            indices = np.random.choice(np.arange(build[build[:,1]>=3,10].size), replace=False,
+                            size=int(build[build[:,1]>=3,10].size * 0.5)) 
+            # build[indices,10] = 0 #close half of the commercial and public buildings
+            # build[education,10] = 0 #close all education system
+            # build[religious,10] = 0 #close all religious buildings
+            
+        # if 1 < vis_R < 2: # if visible R is between 1 & 2  
+        #     indices = np.random.choice(np.arange(build[build[:,1]==3,10].size), replace=False,
+        #                     size=int(build[build[:,1]==3,10].size * 0.5)) 
+        #     build[indices,10] = 0 #close half of the commercial buildings            
+            
+        elif vis_R > 2: # if visible R is greater than 2 
+            build[:,10] = 0 #close all commercial and public buildings
+            # build[build[:,1] == 3 ,10] = 0 #close all commercial buildings
+        # else: # if visible R smaller than 1 
+        #     build[:,10] = 1 #set all buildings as open
+            
+        # if vis_R > 1:
+        #     build[build[:, 1] >= 3, 10] = 0 
+
+        # else: # if visible R smaller than 1 set all buildings as open
+        #     build[:,10] = 1
         print('\trecovered: ', len(agents[agents[:, 13] == 5])) 
         outputs['Results']['Stats'][day] = {'Infected': len(infected)+new_infections,
                         'New_infections': new_infections,
