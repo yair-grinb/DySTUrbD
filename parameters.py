@@ -28,5 +28,8 @@ contagious_risk_day= gamma((4.5/3.5)**2, scale=3.5**2/4.5) #np.array([0.05,0.5,1
 diagnosis = 7
 quarantine = 7
 
+# scenario
+scenario_codes = ['ALL'] # ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], ['EDU'], ['REL'], ['DIFF']
+
 
 

@@ -3,13 +3,14 @@ from create_random_data import create_data
 from communities import create_network
 import networkx as nx
 from random import choice
-from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis
+from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes
 from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
-from os import mkdir
+from os import mkdir, listdir
 
-mkdir('outputs')
+if 'outputs' not in listdir():
+    mkdir('outputs')
 scenario_name = ''
 
 
@@ -93,6 +94,10 @@ for sim in range(1,31):
     bld_visits_by_agents[bld_visits_by_agents==0] = np.nan
     del zero
     
+    sas_vis_R = {}
+    for sa in np.unique(build[:, 3]):
+        sas_vis_R[sa] = 0
+    
     while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4])> 0:    
     #while day<14:
         t = time()
@@ -103,6 +108,17 @@ for sim in range(1,31):
         bld_visits[:, 1:] = bld_visits[:, 1:] * ((agents[:, 13] != 3) & (agents[:, 13] != 4)
                                                  & (agents[:, 13] != 3.5)).reshape((len(agents), 1))
         bld_visits[bld_visits==0] = np.nan
+        #differential quarantine
+        if 'DIFF' in scenario_codes:
+            for s in sas_vis_R:
+                if sas_vis_R[s] > 1: #if R is greater than 1 in stat zone
+                    build[build[:,3] == s, 10] = 0 #set public and commercial buildings as closed
+                    bld_visits[:, 1:] = bld_visits[:, 1:] * (agents[:,22] != s).reshape((len(agents), 1)) #check if agents live in quarantined stat zone and if yes - all activities but first (home) become zero
+                    bld_visits[bld_visits==0] = np.nan
+                else:
+                  build[build[:,3] == s, 10] = 1 #if smaller than 1 set public and commercial buildings as open  
+            del s
+            
         agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5), 17] = day - agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5), 16] # update number of days since infecton for carriers
         agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5), 19] # update number of days since infecton for carriers
 
@@ -149,11 +165,10 @@ for sim in range(1,31):
         print('\tinfected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]))
         R = compute_R(agents, len(infected))
         new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - len(infected)
-        agent_sas = build[np.where(agents[:, 7][:, None] == build[:, 0][None, :])[1], 3]
         sas_R = {}
         outputs['Results']['SAs'][day] = {}
-        for sa in np.unique(agent_sas):
-            sa_agents = agents[agent_sas == sa]
+        for sa in np.unique(build[:, 3]):
+            sa_agents = agents[agents[:, 22] == sa]
             sa_infected = len(np.where(((sa_agents[:,13]==2) | (sa_agents[:,13]==4) | 
                                         (sa_agents[:, 13]==3.5)) & (sa_agents[:, 16] != day))[0])
             sas_R[sa] = compute_R(sa_agents, sa_infected)
@@ -165,8 +180,8 @@ for sim in range(1,31):
         vis_R = compute_vis_R(agents)
         new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
         sas_vis_R = {}
-        for sa in np.unique(agent_sas):
-            sa_agents = agents[agent_sas == sa]
+        for sa in np.unique(build[:, 3]):
+            sa_agents = agents[agents[:, 22] == sa]
             sas_vis_R[sa] = compute_vis_R(sa_agents)
         outputs['Results']['SAs'][day]['vis_R'] = sas_vis_R
         del sa_agents
@@ -177,42 +192,35 @@ for sim in range(1,31):
         agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 5), 20] = 0
         print('\tVis_R:' ,vis_R)
         
-        education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
-        religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
-        
-        #differential quarantine
-        for s in sas_vis_R:
-            if sas_vis_R[s] > 1: #if R is greater than 1 in stat zone
-                build[(build[:,3] == s) & (build[:,1] >= 3), 10] = 0 #set public and commercial buildings as closed
-                bld_visits[:, 1:] = bld_visits[:, 1:] * (agents[:,22] != s).reshape((len(agents), 1)) #check if agents live in quarantined stat zone and if yes - all activities but first (home) become zero
-                bld_visits[bld_visits==0] = np.nan
+        if 'GRADUAL' in scenario_codes:
+            if 1 < vis_R < 2: # if visible R is between 1 & 2  
+                if 'ALL' in scenario_codes:
+                    indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
+                                               size=int(build[build[:,1]>=3,10].size * 0.5)) 
+                elif 'EDU' in scenario_codes:
+                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
+                    indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
+                elif 'REL' in scenario_codes:
+                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
+                    indices = np.random.choice(religious, replace=False, size=int(religious.size*0.5))
+                build[indices,10] = 0 #close all selected buildings
+            elif vis_R > 2: # if visible R is greater than 2 
+                build[build[:, 1] >= 3, 10] = 0 #close all commercial and public buildings
+            else: # if visible R smaller than 1 
+                build[:,10] = 1 #set all buildings as open
+        else:
+            if 1 <  vis_R:
+                if 'ALL' in scenario_codes:
+                    build[build[:, 1] >= 3, 10] = 0
+                elif 'EDU' in scenario_codes:
+                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
+                    build[education, 10] = 0
+                elif 'REL' in scenario_codes:
+                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
+                    build[religious, 10] = 0
             else:
-              build[(build[:,3] == s) & (build[:,1] >= 3), 10] = 1 #if smaller than 1 set public and commercial buildings as open  
-        del s
+                build[:, 10] = 1
         
-        if 1 < vis_R < 2: # if visible R is between 1 & 2  
-            indices = np.random.choice(np.arange(build[build[:,1]>=3,10].size), replace=False,
-                            size=int(build[build[:,1]>=3,10].size * 0.5)) 
-            # build[indices,10] = 0 #close half of the commercial and public buildings
-            # build[education,10] = 0 #close all education system
-            # build[religious,10] = 0 #close all religious buildings
-            
-        # if 1 < vis_R < 2: # if visible R is between 1 & 2  
-        #     indices = np.random.choice(np.arange(build[build[:,1]==3,10].size), replace=False,
-        #                     size=int(build[build[:,1]==3,10].size * 0.5)) 
-        #     build[indices,10] = 0 #close half of the commercial buildings            
-            
-        elif vis_R > 2: # if visible R is greater than 2 
-            build[:,10] = 0 #close all commercial and public buildings
-            # build[build[:,1] == 3 ,10] = 0 #close all commercial buildings
-        # else: # if visible R smaller than 1 
-        #     build[:,10] = 1 #set all buildings as open
-            
-        # if vis_R > 1:
-        #     build[build[:, 1] >= 3, 10] = 0 
-
-        # else: # if visible R smaller than 1 set all buildings as open
-        #     build[:,10] = 1
         print('\trecovered: ', len(agents[agents[:, 13] == 5])) 
         outputs['Results']['Stats'][day] = {'Infected': len(infected)+new_infections,
                         'New_infections': new_infections,
@@ -239,9 +247,9 @@ for sim in range(1,31):
         outputs['Results']['Stats'][day]['Time'] = time()-t
         sas = np.unique(build[:, 3])
         infect_mat = {sa:{sa2: 0 for sa2 in sas} for sa in sas}
-        infected_sas = agent_sas[agents[:, 16]==day]
-        infecting_sas = agent_sas[np.where(agents[agents[:, 16]==day, 21][:, None] ==
-                                           agents[:, 0][None, :])[1]]
+        infected_sas = agents[agents[:, 16]==day, 22]
+        infecting_sas = agents[np.where(agents[agents[:, 16]==day, 21][:, None] ==
+                                           agents[:, 0][None, :])[1], 22]
         if infecting_sas.size > 0:
             for sa in sas:
                 counts = np.unique(infecting_sas[infected_sas == sa], return_counts=True)
