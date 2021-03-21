@@ -3,7 +3,7 @@ import pandas as pd
 from parameters import jobs_per_m, avgIncome, stdIncome, risk_func
 
 
-def create_data(ind_file, blds_file):
+def create_data(ind_file, blds_file): 
     #import data
     agents=np.array(pd.read_csv(ind_file, header=None).values)
     agents = agents[:, [0, 11, 2, 3, 6, 12, 3, 1]] # id, hh, dis, worker, age, workIn, wp_participant, building
@@ -128,7 +128,7 @@ def create_data(ind_file, blds_file):
     agents = np.append(agents, epidemic, axis=1)
     
     #create more regular activities per agent
-    agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1)
+    agents = np.append(agents, np.zeros((len(agents), 9)), axis= 1)
     agents[:,18] = np.nan
     agents[agents[:, 8] == 1, 18] = np.random.choice(rel_etc, len(agents[agents[:, 8] == 1])) * np.random.randint(2, size=len(agents[agents[:, 8] == 1]))
     agents[agents[:, 8] == 0, 18] = np.random.choice(etc, len(agents[agents[:, 8] == 0])) * np.random.randint(2, size=len(agents[agents[:, 8] == 0]))
@@ -138,5 +138,44 @@ def create_data(ind_file, blds_file):
     for b in build:
         blds = agents[:, 7] == b[0]
         agents[blds, 22] = b[3]
-    
+        
+    #add admission prob by age per agent
+    for a in agents:
+        if a[4] < 20:
+           a[23] = np.random.normal(0.0396,0.02) 
+        elif 20 <= a[4] <= 29:
+           a[23] = np.random.normal(0.1181,0.02)
+        elif 30 <= a[4] <= 39:
+           a[23] = np.random.normal(0.1017,0.02)  
+        elif 40 <= a[4] <= 49:
+           a[23] = np.random.normal(0.1234,0.02)
+        elif 50 <= a[4] <= 59:
+           a[23] = np.random.normal(0.15,0.02)  
+        elif 60 <= a[4] <= 69:
+           a[23] = np.random.normal(0.1712,0.02)
+        elif 70 <= a[4] <= 79:
+           a[23] = np.random.normal(0.154,0.02)
+        elif a[4] >= 80:
+            a[23] = np.random.normal(0.1421,0.02)
+    del a
+       
+     #add mortality prob by age per agent
+    for a in agents:
+        if a[4] < 20:
+           a[26] = 0 
+        elif 20 <= a[4] <= 29:
+           a[26] = 0
+        elif 30 <= a[4] <= 39:
+           a[26] = np.random.normal(0.01,0.005)  
+        elif 40 <= a[4] <= 49:
+           a[26] = np.random.normal(0.015,0.005)
+        elif 50 <= a[4] <= 59:
+           a[26] = np.random.normal(0.03,0.01)  
+        elif 60 <= a[4] <= 69:
+           a[26] = np.random.normal(0.1,0.02)
+        elif 70 <= a[4] <= 79:
+           a[26] = np.random.normal(0.25,0.05)
+        elif a[4] >= 80:
+            a[26] = np.random.normal(0.595,0.07)
+    del a
     return agents, households, build, jobs
