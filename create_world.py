@@ -31,6 +31,7 @@ def create_world():
     print 'getting roads', time() - t
     gv.roads = create_agent_class(gv.roadsFile, range(6), [1, 0, 0])
     
+    # TODO: Remove once new land use change mechanism is inserted    
     # create road network graph and junctions
     gv.graph = nx.Graph()
     for i in range(gv.roads.shape[0]):
@@ -147,6 +148,10 @@ def create_world():
     # unoccupied jobs are occupied by in-commuter
     gv.jobs[np.isnan(gv.jobs[:, 2]), 2] = 0
     
+    # TODO: Add activity columns and epidemic columns
+    
+    # TODO: Call to create_social_network from auxilliary functions
+        
     # create routines
     print 'creating routines', time() - t
     for i in range(len(gv.indivs)):

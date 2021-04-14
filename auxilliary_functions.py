@@ -18,12 +18,18 @@ def compute_network():
     gv.routes = dict(nx.all_pairs_dijkstra_path(gv.graph, weight='weight'))
 
 
+# TODO: Paste create_network from communities, verify it works
+def compute_social_network():
+    pass
+
+
 def get_path(o, d):
     r = gv.routes[gv.junctions[o]][gv.junctions[d]]
     route = [np.where(gv.roads[:, 0] == gv.graph[r[i]][r[i + 1]]['fid'])[0] for i in range(len(r) - 1)]
     return route
 
 
+# TODO: replace code with routine creation from contagious - keep the computation of paths on roads
 def create_routines(i):
     path = []
     hh = gv.households[gv.households[:, 0] == gv.indivs[i, 1].astype(int)][0]
