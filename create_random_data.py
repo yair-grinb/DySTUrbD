@@ -120,7 +120,7 @@ def create_data(ind_file, blds_file):
     
     epidemic = np.zeros((len(agents), 5))
     epidemic[:,0] = 1
-    epidemic[:, 1] = risk_func(agents[:, 4].astype(int))
+    # epidemic[:, 1] = risk_func(agents[:, 4].astype(int))
     epidemic[:, 2] = np.random.random(len(epidemic))
     epidemic[np.random.choice(range(len(epidemic)), 20, replace=False), 0] = 2 # choose only out-commuters
     # also consider the effect of jobs occupied by in-commuters
@@ -139,6 +139,26 @@ def create_data(ind_file, blds_file):
         blds = agents[:, 7] == b[0]
         agents[blds, 22] = b[3]
         
+    #add infection prob by age per agent
+    for a in agents:
+        if a[4] < 18:
+           a[14] = np.random.normal(0.0742,0.02) 
+        elif 18 <= a[4] <= 29:
+           a[14] = np.random.normal(0.0742*2,0.04)
+        elif 30 <= a[4] <= 39:
+           a[14] = np.random.normal(0.0742*2,0.04)  
+        elif 40 <= a[4] <= 49:
+           a[14] = np.random.normal(0.0742*2,0.04)
+        elif 50 <= a[4] <= 64:
+           a[14] = np.random.normal(0.0742*2,0.04)  
+        elif 65 <= a[4] <= 74:
+           a[14] = np.random.normal(0.0742,0.02)
+        elif 75 <= a[4] <= 84:
+           a[14] = np.random.normal(0.0742,0.02)
+        elif a[4] >= 85:
+            a[14] = np.random.normal(0.0742*2,0.04)
+    del a    
+    
     #add admission prob by age per agent
     for a in agents:
         if a[4] < 20:

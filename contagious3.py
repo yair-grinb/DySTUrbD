@@ -44,7 +44,7 @@ for sim in range(1,31):
     t = time()
     agents, households, build, jobs = create_data('data/civ_withCar_bldg_np.csv', 'data/bldg_with_inst_orig.csv')
     # agents: 0 id, 1 hh, 2 dis, 3 worker, 4 age, 5 workIn, 6 wp_participant, 7 building, 8 random socio-economic status, 
-    # 13 contagious status, 14 contagious risk, 15 exposure risk, 16 contagious day, 17 sick day, 18 more regular activities,
+    # 13 contagious status, 14 contagious risk by age, 15 exposure risk, 16 contagious day, 17 sick day, 18 more regular activities,
     # 19 quarantine start day, 20 num of days in quarantine, 22 agent's stat area, 23 admission prob, 24 admission day, 
     # 25 num of days in admission, 26 mortality probability
     G = create_network(agents, households, build) # link agents and buildings
