@@ -5,7 +5,7 @@ from parameters import jobs_per_m, avgIncome, stdIncome, risk_func
 
 def create_data(ind_file, blds_file): 
     #import data
-    agents=np.array(pd.read_csv(ind_file, header=None).values)
+    agents = np.array(pd.read_csv(ind_file, header=None).values)
     agents = agents[:, [0, 11, 2, 3, 6, 12, 3, 1]] # id, hh, dis, worker, age, workIn, wp_participant, building
     agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1) # id, hh, dis, worker, age, workIn, wp_participant, building, religous(bin), job, expected income, actual income, job building
     agents[:, [8, 9, 12]] = np.nan
@@ -19,19 +19,11 @@ def create_data(ind_file, blds_file):
     households = households[[11, 1, 10, 13]].groupby(11).first().reset_index().to_numpy() # id, home, income, car
     
     #religous agents calculations
-    # more efficient?
     households = np.append(households, np.random.randint(0,2,(len(households), 1)), axis=1)
     for h in households:
         members = agents[:, 1] == h[0]
         agents[members, 8] = h[4]
         
-    # for a in range(len(agents)):
-    #     for i in range(len(households)):
-    #         if households[i,0] == agents[a,1]:
-    #             agents[a,8] = households[i,4]
-    # del a,i
-    
-    
     build=np.array(pd.read_csv(blds_file).values)
     build = build[:, [6, 2, 3, 12, 4, 2, 14, 15,17, 18]] # id, lu, floors, stat, fs, init_lu, x, y, USG group,USG code
     build = np.append(build, np.ones((len(build), 1)), axis= 1) #building status (closed/open)
@@ -40,8 +32,7 @@ def create_data(ind_file, blds_file):
     agents[agents[:, 4]==2, 4] = np.random.randint(19, 65, len(agents[agents[:, 4]==2]))
     agents[agents[:, 4]==1, 4] = np.random.randint(1, 18, len(agents[agents[:, 4]==1]))
     
-    
-    
+
     # create jobs in buildings
     jobs_num = np.round_((np.choose(build[:, 1].astype(int), 
         (build[:, np.newaxis, 4] * np.array(jobs_per_m)).transpose())).tolist(), 0).astype(int)

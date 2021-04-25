@@ -15,7 +15,7 @@ scenario_name = ''
 
 
 def compute_R(agents, infected):
-    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - infected
+    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - infected
     sum_I = 0.
     for i in range(1, recover+1):
         sum_I += agents[agents[:, 17] == i].shape[0] * contagious_risk_day.pdf(i)
@@ -100,7 +100,7 @@ for sim in range(1,31):
     for sa in np.unique(build[:, 3]):
         sas_vis_R[sa] = 0
     
-    while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4])> 0:    
+    while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4]) + len(agents[agents[:, 13] == 5])> 0:    
     #while day<14:
         t = time()
         # get buildings status - open/close == 1/0 and multiply bld_visits_by_agents by it
@@ -128,7 +128,7 @@ for sim in range(1,31):
         agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5), 19] # update number of days since quarantine for carriers
         agents[(agents[:, 13] == 5), 25] = day - agents[(agents[:, 13] == 5), 24] # update number of days since admission
         
-        infected = np.where((agents[:,13]==2) | (agents[:,13]==4) | (agents[:, 13]==3.5))[0]
+        infected = np.where((agents[:,13]==2) | (agents[:,13]==4) | (agents[:, 13]==3.5) | (agents[:, 13]==5) | (agents[:, 13]==7))[0]
         uninfected = np.where((agents[:,13]<2) | (agents[:,13]==3))[0]
         admitted = np.where(agents[:,13]==5)[0]
         unadmitted = np.where(agents[:,13]!=5)[0]
@@ -195,9 +195,9 @@ for sim in range(1,31):
 
                           
         print('day: ', day+1)
-        print('\tinfected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]))
+        print('\tactive infected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5]))
         R = compute_R(agents, len(infected))
-        new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - len(infected)
+        new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - len(infected)
         
         sas_R = {}
         outputs['Results']['SAs'][day] = {}
@@ -214,6 +214,7 @@ for sim in range(1,31):
         print('\tnew admissions: ', len(new_admissions[0]))
         print('\ttotal deaths: ', len(admitted))
         print('\tdaily deaths: ', len(new_deaths[0]))
+        print('\ttotal infected:',len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==6])+len(agents[agents[:,13]==7]))
         
         vis_R = compute_vis_R(agents)
         new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
