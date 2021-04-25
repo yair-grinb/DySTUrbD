@@ -173,20 +173,20 @@ def create_data(ind_file, blds_file):
      #add mortality prob by age per agent
     for a in agents:
         if a[4] < 20:
-           a[26] = 0 
+           a[26] = 0.00002 
         elif 20 <= a[4] <= 29:
-           a[26] = 0
+           a[26] = 0.0002
         elif 30 <= a[4] <= 39:
-           a[26] = np.random.normal(0.01,0.005)  
+           a[26] = 0.000901  
         elif 40 <= a[4] <= 49:
-           a[26] = np.random.normal(0.015,0.005)
+           a[26] = np.random.normal(0.002602,0.001)
         elif 50 <= a[4] <= 59:
-           a[26] = np.random.normal(0.03,0.01)  
+           a[26] = np.random.normal(0.008822,0.005)  
         elif 60 <= a[4] <= 69:
-           a[26] = np.random.normal(0.1,0.02)
+           a[26] = np.random.normal(0.026025,0.015)
         elif 70 <= a[4] <= 79:
-           a[26] = np.random.normal(0.25,0.05)
+           a[26] = np.random.normal(0.06402,0.03)
         elif a[4] >= 80:
-            a[26] = np.random.normal(0.595,0.07)
+            a[26] = np.random.normal(0.174104,0.1)
     del a
     return agents, households, build, jobs
