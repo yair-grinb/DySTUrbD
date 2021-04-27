@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from parameters import jobs_per_m, avgIncome, stdIncome, risk_func
+from parameters import jobs_per_m, avgIncome, stdIncome, infection_prob, admission_prob, mortality_prob
 
 
 def create_data(ind_file, blds_file): 
@@ -62,6 +62,10 @@ def create_data(ind_file, blds_file):
         local_workers = np.where((agents[:, 5] == 1) & (np.isnan(agents[:, 9])))[0]
         av_jobs = np.where(np.isnan(jobs[:, 2]))[0]
     
+    # unoccupied jobs are occupied by in-commuter
+    jobs[np.isnan(jobs[:, 2]), 2] = 0
+    
+    # unnemployed agents are removed from workforce
     agents[(agents[:, 5] == 1) & (np.isnan(agents[:, 9])), 5:7] = [0, 0]
     agents[(agents[:, 3] == 1) & (agents[:, 5] == 0), 11] = agents[
         (agents[:, 3] == 1) & (agents[:, 5] == 0), 10]
@@ -79,19 +83,11 @@ def create_data(ind_file, blds_file):
     high_schools_rel = build[build[:,9]==5525,0]
     kinder = build[build[:,9]==5305,0]
     kinder_rel = build[build[:,9]==5300,0]
-    religious = build[build[:,9]==5501,0]
-    religious = np.append(religious,build[build[:,9]==5521,0])
+    religious = build[np.isin(build[:,9], [5501, 5521]), 0]
     yeshiva = build[build[:,9]==5340,0]
-    etc = build[build[:,9]==6512,0]
-    etc = np.append(etc,build[build[:,9]==6520,0])
-    etc = np.append(etc,build[build[:,9]==6530,0])
-    etc = np.append(etc,build[build[:,9]==6600,0])
-    etc = np.append(etc,build[build[:,9]==5740,0])
-    etc = np.append(etc,build[build[:,9]==5760,0])
-    etc = np.append(etc,build[build[:,9]==5600,0])
-    etc = np.append(etc,build[build[:,9]==5700,0])
-    etc = np.append(etc,build[build[:,9]==5202,0])
-    etc = np.append(etc,build[build[:,9]==5253,0])
+    etc = build[np.isin(build[:,9], 
+                        [6512, 6520, 6530, 6600, 5740, 5760, 5600, 5700, 5202, 5253]),
+                0]
     rel_etc = np.append(etc,religious)
     
     #inserting all non-working agents their activities
@@ -105,9 +101,6 @@ def create_data(ind_file, blds_file):
     agents[(np.isnan(agents[:, 12])) , 12] = np.random.choice(etc, len(agents[(np.isnan(agents[:, 12]))])) * np.random.randint(2, size=len(agents[np.isnan(agents[:, 12])]))
     agents[agents[:, 12]==0, 12] = np.nan
 
-
-    # unoccupied jobs are occupied by in-commuter
-    jobs[np.isnan(jobs[:, 2]), 2] = 0
     
     epidemic = np.zeros((len(agents), 5))
     epidemic[:,0] = 1
@@ -131,62 +124,21 @@ def create_data(ind_file, blds_file):
         agents[blds, 22] = b[3]
         
     #add infection prob by age per agent
-    for a in agents:
-        if a[4] < 18:
-           a[14] = np.random.normal(0.0742,0.02) 
-        elif 18 <= a[4] <= 29:
-           a[14] = np.random.normal(0.0742*2,0.04)
-        elif 30 <= a[4] <= 39:
-           a[14] = np.random.normal(0.0742*2,0.04)  
-        elif 40 <= a[4] <= 49:
-           a[14] = np.random.normal(0.0742*2,0.04)
-        elif 50 <= a[4] <= 64:
-           a[14] = np.random.normal(0.0742*2,0.04)  
-        elif 65 <= a[4] <= 74:
-           a[14] = np.random.normal(0.0742,0.02)
-        elif 75 <= a[4] <= 84:
-           a[14] = np.random.normal(0.0742,0.02)
-        elif a[4] >= 85:
-            a[14] = np.random.normal(0.0742*2,0.04)
-    del a    
+    for inf in infection_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 14] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])]))
+    agents[agents[:, 14] < 0, 14] = 0
     
     #add admission prob by age per agent
-    for a in agents:
-        if a[4] < 20:
-           a[23] = np.random.normal(0.0396,0.02) 
-        elif 20 <= a[4] <= 29:
-           a[23] = np.random.normal(0.1181,0.02)
-        elif 30 <= a[4] <= 39:
-           a[23] = np.random.normal(0.1017,0.02)  
-        elif 40 <= a[4] <= 49:
-           a[23] = np.random.normal(0.1234,0.02)
-        elif 50 <= a[4] <= 59:
-           a[23] = np.random.normal(0.15,0.02)  
-        elif 60 <= a[4] <= 69:
-           a[23] = np.random.normal(0.1712,0.02)
-        elif 70 <= a[4] <= 79:
-           a[23] = np.random.normal(0.154,0.02)
-        elif a[4] >= 80:
-            a[23] = np.random.normal(0.1421,0.02)
-    del a
+    for inf in admission_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 23] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])]))
+    agents[agents[:, 23] < 0, 23] = 0
        
-     #add mortality prob by age per agent
-    for a in agents:
-        if a[4] < 20:
-           a[26] = 0.00002 
-        elif 20 <= a[4] <= 29:
-           a[26] = 0.0002
-        elif 30 <= a[4] <= 39:
-           a[26] = 0.000901  
-        elif 40 <= a[4] <= 49:
-           a[26] = np.random.normal(0.002602,0.001)
-        elif 50 <= a[4] <= 59:
-           a[26] = np.random.normal(0.008822,0.005)  
-        elif 60 <= a[4] <= 69:
-           a[26] = np.random.normal(0.026025,0.015)
-        elif 70 <= a[4] <= 79:
-           a[26] = np.random.normal(0.06402,0.03)
-        elif a[4] >= 80:
-            a[26] = np.random.normal(0.174104,0.1)
-    del a
+    #add mortality prob by age per agent
+    for inf in mortality_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 26] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])])) 
+    agents[agents[:, 26] < 0, 26] = 0
+    
     return agents, households, build, jobs
