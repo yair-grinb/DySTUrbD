@@ -14,6 +14,18 @@ if 'outputs' not in listdir():
 scenario_name = ''
 
 
+def reconst(i, j):
+    path = [j]
+    current = j
+    pred = dists[1][current]
+    while pred != i:
+        path.append(pred)
+        current = pred
+        pred = dists[1][current]
+    path.append(i)
+    return list(reversed(path))
+
+
 def compute_R(agents, infected):
     new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - infected
     sum_I = 0.
@@ -66,6 +78,7 @@ for sim in range(1,31):
     outputs['interaction_time'] = time()-t
     
     bld_visits_by_agents = []
+    agent_paths = []
     for n in range(len(agents_reg)):
         a = agents_reg[n, 0]
         current_position = agents_reg[n, 1]
@@ -80,7 +93,9 @@ for sim in range(1,31):
                                         (nodes<4000000)] # buildings within bld_dist from current position
                         intersect = np.intersect1d(i_nodes, c_nodes)
                         union = np.union1d(intersect, a_nodes)
-                        current_position = choice(union)
+                        destination = choice(union)
+                        path = reconst(current_position, destination)
+                        current_position = destination
                         visits.append(current_position)
                 current_position = i
                 visits.append(current_position)
