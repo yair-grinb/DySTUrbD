@@ -221,7 +221,6 @@ def create_event():
 def hh_step(h_idx):
     gv.households[h_idx, 2] = np.nansum(gv.indivs[gv.indivs[:, 1] == gv.households[h_idx, 0], 11])
     if random.random() < mp.outMigChance:
-        leave_town(h_idx, np.where(gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1]])[0])
         return True
     elif random.random() < gv.zones[gv.zones[:, 0] == gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1], 3], 2]:
         found = find_new_home(h_idx, False)

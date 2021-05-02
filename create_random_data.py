@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-from parameters import jobs_per_m, avgIncome, stdIncome, risk_func
+from parameters import jobs_per_m, avgIncome, stdIncome, infection_prob, admission_prob, mortality_prob
 
 
-def create_data(ind_file, blds_file):
+def create_data(ind_file, blds_file): 
     #import data
-    agents=np.array(pd.read_csv(ind_file, header=None).values)
+    agents = np.array(pd.read_csv(ind_file, header=None).values)
     agents = agents[:, [0, 11, 2, 3, 6, 12, 3, 1]] # id, hh, dis, worker, age, workIn, wp_participant, building
     agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1) # id, hh, dis, worker, age, workIn, wp_participant, building, religous(bin), job, expected income, actual income, job building
     agents[:, [8, 9, 12]] = np.nan
@@ -19,19 +19,11 @@ def create_data(ind_file, blds_file):
     households = households[[11, 1, 10, 13]].groupby(11).first().reset_index().to_numpy() # id, home, income, car
     
     #religous agents calculations
-    # more efficient?
     households = np.append(households, np.random.randint(0,2,(len(households), 1)), axis=1)
     for h in households:
         members = agents[:, 1] == h[0]
         agents[members, 8] = h[4]
         
-    # for a in range(len(agents)):
-    #     for i in range(len(households)):
-    #         if households[i,0] == agents[a,1]:
-    #             agents[a,8] = households[i,4]
-    # del a,i
-    
-    
     build=np.array(pd.read_csv(blds_file).values)
     build = build[:, [6, 2, 3, 12, 4, 2, 14, 15,17, 18]] # id, lu, floors, stat, fs, init_lu, x, y, USG group,USG code
     build = np.append(build, np.ones((len(build), 1)), axis= 1) #building status (closed/open)
@@ -40,8 +32,7 @@ def create_data(ind_file, blds_file):
     agents[agents[:, 4]==2, 4] = np.random.randint(19, 65, len(agents[agents[:, 4]==2]))
     agents[agents[:, 4]==1, 4] = np.random.randint(1, 18, len(agents[agents[:, 4]==1]))
     
-    
-    
+
     # create jobs in buildings
     jobs_num = np.round_((np.choose(build[:, 1].astype(int), 
         (build[:, np.newaxis, 4] * np.array(jobs_per_m)).transpose())).tolist(), 0).astype(int)
@@ -71,6 +62,10 @@ def create_data(ind_file, blds_file):
         local_workers = np.where((agents[:, 5] == 1) & (np.isnan(agents[:, 9])))[0]
         av_jobs = np.where(np.isnan(jobs[:, 2]))[0]
     
+    # unoccupied jobs are occupied by in-commuter
+    jobs[np.isnan(jobs[:, 2]), 2] = 0
+    
+    # unnemployed agents are removed from workforce
     agents[(agents[:, 5] == 1) & (np.isnan(agents[:, 9])), 5:7] = [0, 0]
     agents[(agents[:, 3] == 1) & (agents[:, 5] == 0), 11] = agents[
         (agents[:, 3] == 1) & (agents[:, 5] == 0), 10]
@@ -88,19 +83,11 @@ def create_data(ind_file, blds_file):
     high_schools_rel = build[build[:,9]==5525,0]
     kinder = build[build[:,9]==5305,0]
     kinder_rel = build[build[:,9]==5300,0]
-    religious = build[build[:,9]==5501,0]
-    religious = np.append(religious,build[build[:,9]==5521,0])
+    religious = build[np.isin(build[:,9], [5501, 5521]), 0]
     yeshiva = build[build[:,9]==5340,0]
-    etc = build[build[:,9]==6512,0]
-    etc = np.append(etc,build[build[:,9]==6520,0])
-    etc = np.append(etc,build[build[:,9]==6530,0])
-    etc = np.append(etc,build[build[:,9]==6600,0])
-    etc = np.append(etc,build[build[:,9]==5740,0])
-    etc = np.append(etc,build[build[:,9]==5760,0])
-    etc = np.append(etc,build[build[:,9]==5600,0])
-    etc = np.append(etc,build[build[:,9]==5700,0])
-    etc = np.append(etc,build[build[:,9]==5202,0])
-    etc = np.append(etc,build[build[:,9]==5253,0])
+    etc = build[np.isin(build[:,9], 
+                        [6512, 6520, 6530, 6600, 5740, 5760, 5600, 5700, 5202, 5253]),
+                0]
     rel_etc = np.append(etc,religious)
     
     #inserting all non-working agents their activities
@@ -114,13 +101,10 @@ def create_data(ind_file, blds_file):
     agents[(np.isnan(agents[:, 12])) , 12] = np.random.choice(etc, len(agents[(np.isnan(agents[:, 12]))])) * np.random.randint(2, size=len(agents[np.isnan(agents[:, 12])]))
     agents[agents[:, 12]==0, 12] = np.nan
 
-
-    # unoccupied jobs are occupied by in-commuter
-    jobs[np.isnan(jobs[:, 2]), 2] = 0
     
     epidemic = np.zeros((len(agents), 5))
     epidemic[:,0] = 1
-    epidemic[:, 1] = risk_func(agents[:, 4].astype(int))
+    # epidemic[:, 1] = risk_func(agents[:, 4].astype(int))
     epidemic[:, 2] = np.random.random(len(epidemic))
     epidemic[np.random.choice(range(len(epidemic)), 20, replace=False), 0] = 2 # choose only out-commuters
     # also consider the effect of jobs occupied by in-commuters
@@ -128,7 +112,7 @@ def create_data(ind_file, blds_file):
     agents = np.append(agents, epidemic, axis=1)
     
     #create more regular activities per agent
-    agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1)
+    agents = np.append(agents, np.zeros((len(agents), 9)), axis= 1)
     agents[:,18] = np.nan
     agents[agents[:, 8] == 1, 18] = np.random.choice(rel_etc, len(agents[agents[:, 8] == 1])) * np.random.randint(2, size=len(agents[agents[:, 8] == 1]))
     agents[agents[:, 8] == 0, 18] = np.random.choice(etc, len(agents[agents[:, 8] == 0])) * np.random.randint(2, size=len(agents[agents[:, 8] == 0]))
@@ -138,5 +122,23 @@ def create_data(ind_file, blds_file):
     for b in build:
         blds = agents[:, 7] == b[0]
         agents[blds, 22] = b[3]
+        
+    #add infection prob by age per agent
+    for inf in infection_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 14] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])]))
+    agents[agents[:, 14] < 0, 14] = 0
+    
+    #add admission prob by age per agent
+    for inf in admission_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 23] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])]))
+    agents[agents[:, 23] < 0, 23] = 0
+       
+    #add mortality prob by age per agent
+    for inf in mortality_prob:
+        agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1]), 26] = np.random.normal(
+            inf[2], inf[3], len(agents[(agents[:, 4] >= inf[0]) & (agents[:, 4] < inf[1])])) 
+    agents[agents[:, 26] < 0, 26] = 0
     
     return agents, households, build, jobs

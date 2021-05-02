@@ -3,7 +3,7 @@ from create_random_data import create_data
 from communities import create_network
 import networkx as nx
 from random import choice
-from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes
+from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes, risk_by_age, hospital_recover
 from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
@@ -27,7 +27,7 @@ def reconst(i, j):
 
 
 def compute_R(agents, infected):
-    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - infected
+    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - infected
     sum_I = 0.
     for i in range(1, recover+1):
         sum_I += agents[agents[:, 17] == i].shape[0] * contagious_risk_day.pdf(i)
@@ -56,7 +56,9 @@ for sim in range(1,31):
     t = time()
     agents, households, build, jobs = create_data('data/civ_withCar_bldg_np.csv', 'data/bldg_with_inst_orig.csv')
     # agents: 0 id, 1 hh, 2 dis, 3 worker, 4 age, 5 workIn, 6 wp_participant, 7 building, 8 random socio-economic status, 
-    # 13 contagious status, 14 contagious risk, 15 exposure risk, 16 contagious day, 17 sick day, 18 more regular activities, 19 quarantine start day, 20 num of days in quarantine
+    # 13 contagious status, 14 contagious risk by age, 15 exposure risk, 16 contagious day, 17 sick day, 18 more regular activities,
+    # 19 quarantine start day, 20 num of days in quarantine, 22 agent's stat area, 23 admission prob, 24 admission day, 
+    # 25 num of days in admission, 26 mortality probability
     G = create_network(agents, households, build) # link agents and buildings
     print(time() - t)
     outputs['network_time'] = time()-t
@@ -113,7 +115,7 @@ for sim in range(1,31):
     for sa in np.unique(build[:, 3]):
         sas_vis_R[sa] = 0
     
-    while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4])> 0:    
+    while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4]) + len(agents[agents[:, 13] == 5])> 0:    
     #while day<14:
         t = time()
         # get buildings status - open/close == 1/0 and multiply bld_visits_by_agents by it
@@ -121,7 +123,10 @@ for sim in range(1,31):
             np.argmax(build[:, 0][None, :] == bld_visits_by_agents[:, :, None], axis=2), 10]
         # check if agents are in isolation and if yes - all activities but first (home) become zero
         bld_visits[:, 1:] = bld_visits[:, 1:] * ((agents[:, 13] != 3) & (agents[:, 13] != 4)
-                                                 & (agents[:, 13] != 3.5)).reshape((len(agents), 1))
+                                                  & (agents[:, 13] != 3.5)).reshape((len(agents), 1))
+        # check if agents are admitted or dead and if yes - all activities but first (home) become zero
+        bld_visits[:, 0:] = bld_visits[:, 0:] * ((agents[:, 13] != 5) & (agents[:, 13] != 7)).reshape((len(agents), 1))
+        
         bld_visits[bld_visits==0] = np.nan
         #differential quarantine
         if 'DIFF' in scenario_codes:
@@ -135,18 +140,46 @@ for sim in range(1,31):
             del s
             
         agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5), 17] = day - agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5), 16] # update number of days since infecton for carriers
-        agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5), 19] # update number of days since infecton for carriers
-
+        agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5), 19] # update number of days since quarantine for carriers
+        agents[(agents[:, 13] == 5), 25] = day - agents[(agents[:, 13] == 5), 24] # update number of days since admission
         
-        infected = np.where((agents[:,13]==2) | (agents[:,13]==4) | (agents[:, 13]==3.5))[0]
+        infected = np.where((agents[:,13]==2) | (agents[:,13]==4) | (agents[:, 13]==3.5) | (agents[:, 13]==5) | (agents[:, 13]==7))[0]
         uninfected = np.where((agents[:,13]<2) | (agents[:,13]==3))[0]
+        admitted = np.where(agents[:,13]==5)[0]
+        unadmitted = np.where(agents[:,13]!=5)[0]
+        dead = np.where(agents[:,13]==7)[0]
         infected_quar = len(np.where(agents[:,13]==4)[0]) # total diagnosed agents in quarantine            
         infected_blds = bld_visits[infected] # building visits by infected
         uninfected_blds = bld_visits[uninfected] # building visits by uninfected
+        
+        #calculate hospitalized agents
+        no_admission_slot = np.where((agents[:,16] < 4) | (agents[:,16] > 14))[0] # agents infected less than 4 days or more than two weeks
+        no_admission_slot2 = np.where(agents[:, 13] >= 5)[0] # agents hospitalized or recovered
+        admission_prob = agents[:,23] # array of all agents' admission probability
+        admission_prob = admission_prob.copy() # in order to prevent changes on original array 'agents', a copy of admissions prob array is required
+        admission_prob[uninfected] = 0 # set probability 0 for all susceptible agents
+        admission_prob[no_admission_slot] = 0 # set probability 0 for all agents infected less than 4 days or more than 2 weeks
+        admission_prob[no_admission_slot2] = 0 # set probability 0 for all hospitalized & recovered agents 
+        rand_admission = np.random.random(admission_prob.shape) # caclulate random factor for admission
+        admissions = admission_prob > rand_admission # calculate hospitalized & unhospitalized agents
+        new_admissions = np.where(admissions == True) # calculate new admissions
+        agents[admissions, 13] = 5 # set agent's status as hospitalized
+        agents[admissions, 24] = day # record admission day 
+        
+        # #calculate in-hospital mortalities
+        no_death_slot = np.where(agents[:,24] < 3)[0] #agents admitted less than 3 days
+        death_prob = agents[:,26] # array of all agents' death probability
+        death_prob = death_prob.copy() # in order to prevent changes on original array 'agents', a copy of death probs array is required
+        death_prob[unadmitted] = 0 # set death prob for all unadmitted agents as zero
+        death_prob[no_death_slot] = 0 # set death prob for all agents admitted 2 days or less as zero
+        rand_death = np.random.random(death_prob.shape) # caclulate random factor for death
+        deaths = death_prob > rand_death # calculate deaths amongst hospitalized agents
+        new_deaths = np.where(deaths == True) # calculate new deaths
+        agents[deaths, 13] = 7 # set agent's status as deceased
+        
         # compare the two arrays by flattening them and reshaping infected_blds
         exposure = 1*np.array([np.isin(infected_blds, uninfected_blds[i]).any(axis=1) 
-                               for i in range(len(uninfected_blds))])
-        
+                                for i in range(len(uninfected_blds))])
         infection_prob = interaction_prob[uninfected][:, infected] * agents[
             uninfected, 14].reshape((len(uninfected), 1)) 
         infection_prob *= contagious_risk_day.pdf(agents[infected, 17])
@@ -169,17 +202,18 @@ for sim in range(1,31):
             new_quar = np.where((np.isin(agents[:, 1],agents[agents[:,13]==4, 1])) & 
                                 (agents[:, 13]==1))[0] # find their hh members
             agents[new_quar, 13] = 3 # set them to be healthy and in quarantine
-            agents[new_quar, 19] = day # record atart fay of quarantine per agent
+            agents[new_quar, 19] = day # record start day of quarantine per agent
             new_quar_infected = np.where((np.isin(agents[:, 1],agents[agents[:,13]==4, 1])) & 
-                                (agents[:, 13]==2))[0] # find their hh members
-            agents[new_quar_infected, 13] = 3.5 # set them to be healthy and in quarantine
-            agents[new_quar_infected, 19] = day # record atart fay of quarantine per agent
+                                (agents[:, 13]==2))[0] # find their unaware infected hh members
+            agents[new_quar_infected, 13] = 3.5 # set them to be unaware infected and in quarantine
+            agents[new_quar_infected, 19] = day # record start day of quarantine per agent
 
                           
         print('day: ', day+1)
-        print('\tinfected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]))
+        print('\tactive infected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5]))
         R = compute_R(agents, len(infected))
-        new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5]) - len(infected)
+        new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - len(infected)
+        
         sas_R = {}
         outputs['Results']['SAs'][day] = {}
         for sa in np.unique(build[:, 3]):
@@ -191,7 +225,12 @@ for sim in range(1,31):
         del sa_agents, sa_infected
         print('\tnew infections: ', new_infections)
         print('\tquarantined: ', len(agents[agents[:, 13]==3])+len(agents[agents[:,13]==4])+len(agents[agents[:,13]==3.5]))
-        print('\tR: ', R)
+        print('\thospitalized: ', len(admitted))
+        print('\tnew admissions: ', len(new_admissions[0]))
+        print('\ttotal deaths: ', len(admitted))
+        print('\tdaily deaths: ', len(new_deaths[0]))
+        print('\ttotal infected:',len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==6])+len(agents[agents[:,13]==7]))
+        
         vis_R = compute_vis_R(agents)
         new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
         sas_vis_R = {}
@@ -200,18 +239,22 @@ for sim in range(1,31):
             sas_vis_R[sa] = compute_vis_R(sa_agents)
         outputs['Results']['SAs'][day]['vis_R'] = sas_vis_R
         del sa_agents
+        
         agents[(agents[:, 13] == 3) & (agents[:, 19] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
         agents[(agents[:, 13] == 3.5) & (agents[:, 19] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
         agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5)) & (agents[:, 17] == diagnosis), 13] = 4 # sick agents begin quarantine after for days
-        agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 5 # sick agents in quarantine recover 
-        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 5), 20] = 0
+        agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 6 # sick agents in quarantine recover 
+        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6), 20] = 0 # quararntine count reset for unisolated agents
+        agents[(agents[:, 13] == 5) & (agents[:, 17] == hospital_recover), 13] = 6 # admission end with recovery
+        
+        
         print('\tVis_R:' ,vis_R)
         
         if 'GRADUAL' in scenario_codes:
             if 1 < vis_R < 2: # if visible R is between 1 & 2  
                 if 'ALL' in scenario_codes:
                     indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
-                                               size=int(build[build[:,1]>=3,10].size * 0.5)) 
+                                                size=int(build[build[:,1]>=3,10].size * 0.5)) 
                 elif 'EDU' in scenario_codes:
                     education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
                     indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
@@ -236,10 +279,10 @@ for sim in range(1,31):
             else:
                 build[:, 10] = 1
         
-        print('\trecovered: ', len(agents[agents[:, 13] == 5])) 
+        print('\trecovered: ', len(agents[agents[:, 13] == 6])) 
         outputs['Results']['Stats'][day] = {'Infected': len(infected)+new_infections,
                         'New_infections': new_infections,
-                        'Recovered': len(agents[agents[:, 13] == 5]),
+                        'Recovered': len(agents[agents[:, 13] == 6]),
                         'Quarantined': len(agents[agents[:,13]==3])+len(agents[agents[:,13]==4])+len(agents[agents[:,13]==3.5]),
                         'R': R,
                         'Known_R': vis_R}
@@ -248,9 +291,9 @@ for sim in range(1,31):
             b_pop = agents[agents[:, 7] == b[0]]
             if b_pop.shape[0] > 0:
                 b_infected = b_pop[(b_pop[:, 13] == 2) | (b_pop[:, 13] == 3.5) | 
-                                   (b_pop[:, 13] == 4)].shape[0]
+                                    (b_pop[:, 13] == 4)].shape[0]
                 outputs['Results']['Buildings'][day].append([b[0], b_infected, 
-                                                             b_infected / b_pop.shape[0]])
+                                                              b_infected / b_pop.shape[0]])
         if day==0:
             outputs['Results']['Stats'][day]['Total_infected'] = outputs['Results']['Stats'][day]['Infected']
         else:
@@ -264,7 +307,7 @@ for sim in range(1,31):
         infect_mat = {sa:{sa2: 0 for sa2 in sas} for sa in sas}
         infected_sas = agents[agents[:, 16]==day, 22]
         infecting_sas = agents[np.where(agents[agents[:, 16]==day, 21][:, None] ==
-                                           agents[:, 0][None, :])[1], 22]
+                                            agents[:, 0][None, :])[1], 22]
         if infecting_sas.size > 0:
             for sa in sas:
                 counts = np.unique(infecting_sas[infected_sas == sa], return_counts=True)
