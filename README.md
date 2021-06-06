@@ -3,6 +3,13 @@ Dynamic Simulation Tool for Urban Disasters (DySTUrbD) - an agent-based simulati
 
 This agent-based simulation model was developed as part of a research project at the Department of Geography, the Hebrew University of Jerusalem, aimed at developing an understanding of urban recovery processes in the wake of a disaster. The model simulates the urban system as consisting of three main sub-systems: the housing market, the land-use market, and the labor market. Agents represent individuals and are aggregated into households. The environment includes buildings, roads, jobs, and zones (representing neighborhoods, census tracts, or local housing markets). Environmental entities are sensitive to their surroundings and may change attributes accordingly. The model introduces into the system a physical shock representing an earthquake which demolishes buildings, hence directly affecting land-uses and residents and indirectly future rounds of decisions, and simulates the emergence of urban patterns following it.
 
+The epidemiological model:
+1. Contagious - the script which contains the agents' routine calculations, the epidemiological calculations and the calls to create the data and the social network. there are more versions of this script, contagious3 is most up to date.
+2. create_random_data - a script which takes the raw agents & buildings data and makes manipulations over it in order to create the final data which is used for calculations.
+3. communities - the creation of the social network.
+4. parameters - the model's pararmeters.
+5. create_figures - figures which are created from the results of the simulations.
+
 The model includes the following files:
 1. main.py - the script which calls on the functions for initiating and running the model and for saving outputs.
 2. model_parameters.py - this file details the parameters used to define dynamics in the model and their values.
