@@ -27,7 +27,7 @@ scenario_name = ''
 
 
 def compute_R(agents, infected):
-    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - infected
+    new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==6])+len(agents[agents[:,13]==7]) - infected
     sum_I = 0.
     for i in range(1, recover+1):
         sum_I += agents[agents[:, 17] == i].shape[0] * contagious_risk_day.pdf(i)

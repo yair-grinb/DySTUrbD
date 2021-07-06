@@ -46,7 +46,7 @@ a_dist = 1 # maximum distance between agents and buildings
 bld_dist = 6 # maximum distance between buildings and buildings
 
 # infection
-norm_factor = 0.1 # normalizing factor for contagion probability
+norm_factor = 0.08 # normalizing factor for contagion probability
 recover = 21 # days to recover from infection
 hospital_recover = 28 # days to recover while hospitalized
 contagious_risk_day= gamma((4.5/3.5)**2, scale=3.5**2/4.5) #np.array([0.05,0.5,1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]) # contagion factor by days
