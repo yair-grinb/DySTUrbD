@@ -212,14 +212,17 @@ for sim in range(1,31):
         print('day: ', day+1)
         print('\tactive infected: ', len(agents[agents[:, 13] == 2])+len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5]))
         R = compute_R(agents, len(infected) + len(np.where(agents[:, 13]>=5)[0]))
-        new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - len(infected)
+        #new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - len(infected)
+        new_infections = len(agents[(agents[:, 13] != 1) & (agents[:, 13] != 3)]) - len(infected)
         
         sas_R = {}
         outputs['Results']['SAs'][day] = {}
         for sa in np.unique(build[:, 3]):
             sa_agents = agents[agents[:, 22] == sa]
-            sa_infected = len(np.where(((sa_agents[:,13]==2) | (sa_agents[:,13]==4) | 
-                                        (sa_agents[:, 13]==3.5)) & (sa_agents[:, 16] != day))[0])
+            #sa_infected = len(np.where(((sa_agents[:,13]==2) | (sa_agents[:,13]==4) | 
+            #                            (sa_agents[:, 13]==3.5)) & (sa_agents[:, 16] != day))[0])
+            sa_infected = len(sa_agents[(sa_agents[:, 13] != 1) & (sa_agents[:, 13] != 3) 
+                                        & (sa_agents[:, 16] != day)])
             sas_R[sa] = compute_R(sa_agents, sa_infected)
         outputs['Results']['SAs'][day]['R'] = sas_R
         del sa_agents, sa_infected
