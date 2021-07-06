@@ -3,7 +3,7 @@ from create_random_data import create_data
 from communities import create_network
 import networkx as nx
 from random import choice
-from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes, risk_by_age, hospital_recover
+from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes, hospital_recover
 from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
@@ -14,16 +14,16 @@ if 'outputs' not in listdir():
 scenario_name = ''
 
 
-def reconst(i, j):
-    path = [j]
-    current = j
-    pred = dists[1][current]
-    while pred != i:
-        path.append(pred)
-        current = pred
-        pred = dists[1][current]
-    path.append(i)
-    return list(reversed(path))
+# def reconst(i, j):
+#     path = [j]
+#     current = j
+#     pred = dists[1][current]
+#     while pred != i:
+#         path.append(pred)
+#         current = pred
+#         pred = dists[1][current]
+#     path.append(i)
+#     return list(reversed(path))
 
 
 def compute_R(agents, infected):
@@ -96,7 +96,8 @@ for sim in range(1,31):
                         intersect = np.intersect1d(i_nodes, c_nodes)
                         union = np.union1d(intersect, a_nodes)
                         destination = choice(union)
-                        path = reconst(current_position, destination)
+                        # path = reconst(current_position, destination)
+                        # agent_paths.append(path)
                         current_position = destination
                         visits.append(current_position)
                 current_position = i
