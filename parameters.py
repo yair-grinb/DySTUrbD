@@ -54,7 +54,7 @@ diagnosis = 7
 quarantine = 7
 
 # scenario
-scenario_codes = ['ALL'] # ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], ['EDU'], ['REL'], ['DIFF']
+scenario_codes = [] # ['ALL'] # ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], ['EDU'], ['REL'], ['DIFF']
 
 
 

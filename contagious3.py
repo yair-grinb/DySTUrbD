@@ -257,34 +257,34 @@ for sim in range(1,31):
         print('\tVis_R:' ,vis_R)
     
         
-        # if 'GRADUAL' in scenario_codes:
-        #     if 1 < vis_R < 2: # if visible R is between 1 & 2  
-        #         if 'ALL' in scenario_codes:
-        #             indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
-        #                                         size=int(build[build[:,1]>=3,10].size * 0.5)) 
-        #         elif 'EDU' in scenario_codes:
-        #             education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
-        #             indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
-        #         elif 'REL' in scenario_codes:
-        #             religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
-        #             indices = np.random.choice(religious, replace=False, size=int(religious.size*0.5))
-        #         build[indices,10] = 0 #close all selected buildings
-        #     elif vis_R > 2: # if visible R is greater than 2 
-        #         build[build[:, 1] >= 3, 10] = 0 #close all commercial and public buildings
-        #     else: # if visible R smaller than 1 
-        #         build[:,10] = 1 #set all buildings as open
-        # else:
-        #     if 1 <  vis_R:
-        #         if 'ALL' in scenario_codes:
-        #             build[build[:, 1] >= 3, 10] = 0
-        #         elif 'EDU' in scenario_codes:
-        #             education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
-        #             build[education, 10] = 0
-        #         elif 'REL' in scenario_codes:
-        #             religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
-        #             build[religious, 10] = 0
-        #     else:
-        #         build[:, 10] = 1
+        if 'GRADUAL' in scenario_codes:
+            if 1 < vis_R < 2: # if visible R is between 1 & 2  
+                if 'ALL' in scenario_codes:
+                    indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
+                                                size=int(build[build[:,1]>=3,10].size * 0.5)) 
+                elif 'EDU' in scenario_codes:
+                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
+                    indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
+                elif 'REL' in scenario_codes:
+                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
+                    indices = np.random.choice(religious, replace=False, size=int(religious.size*0.5))
+                build[indices,10] = 0 #close all selected buildings
+            elif vis_R > 2: # if visible R is greater than 2 
+                build[build[:, 1] >= 3, 10] = 0 #close all commercial and public buildings
+            else: # if visible R smaller than 1 
+                build[:,10] = 1 #set all buildings as open
+        else:
+            if 1 <  vis_R:
+                if 'ALL' in scenario_codes:
+                    build[build[:, 1] >= 3, 10] = 0
+                elif 'EDU' in scenario_codes:
+                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
+                    build[education, 10] = 0
+                elif 'REL' in scenario_codes:
+                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
+                    build[religious, 10] = 0
+            else:
+                build[:, 10] = 1
         
         print('\trecovered: ', len(agents[agents[:, 13] == 6])) 
         outputs['Results']['Stats'][day] = {'Infected': len(infected)+new_infections,
