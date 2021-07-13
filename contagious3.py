@@ -201,12 +201,24 @@ for sim in range(1,31):
         agents[uninfected[new_quarantined_infected], 16] = day
         # this allows tracing infection chains - who infected whom and when
         agents[uninfected[np.where(infections)[0]], 21] = agents[infected[np.where(infections)[1]], 0]
-        if len(agents[agents[:, 13] == 4]) > 0: # if there are sick agents in quarantine
-            new_quar = np.where((np.isin(agents[:, 1],agents[agents[:,13]==4, 1])) & 
+        
+        agents[(agents[:, 13] == 3) & (agents[:, 19] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
+        agents[(agents[:, 13] == 3.5) & (agents[:, 19] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
+        agents[(agents[:, 13] == 2) & (agents[:, 17] == diagnosis), 19] = day 
+        agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5)) & (agents[:, 17] == diagnosis), 13] = 4 # sick agents begin quarantine after for days
+        agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 6 # sick agents in quarantine recover 
+        agents[(agents[:, 13] == 5) & (agents[:, 17] == hospital_recover), 13] = 6 # admission end with recovery
+        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 20] = 0 # quararntine count reset for unisolated agents
+        #agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 17] = 0
+        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 24] = 0
+        
+        new_diagnosed_agents = agents[(agents[:, 13] == 4) & (agents[:, 17] == diagnosis)]
+        if len(new_diagnosed_agents) > 0: # if there are sick agents in quarantine
+            new_quar = np.where((np.isin(agents[:, 1],new_diagnosed_agents[:, 1])) & 
                                 (agents[:, 13]==1))[0] # find their hh members
             agents[new_quar, 13] = 3 # set them to be healthy and in quarantine
             agents[new_quar, 19] = day # record start day of quarantine per agent
-            new_quar_infected = np.where((np.isin(agents[:, 1],agents[agents[:,13]==4, 1])) & 
+            new_quar_infected = np.where((np.isin(agents[:, 1],new_diagnosed_agents)) & 
                                 (agents[:, 13]==2))[0] # find their unaware infected hh members
             agents[new_quar_infected, 13] = 3.5 # set them to be unaware infected and in quarantine
             agents[new_quar_infected, 19] = day # record start day of quarantine per agent
@@ -214,9 +226,8 @@ for sim in range(1,31):
                           
         print('day: ', day+1)
         print('\tactive infected: ', 
-              len(agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5) | (agents[:, 13] == 4))
-                         & (agents[:, 17] < recover)]) + 
-              len(agents[(agents[:, 13] == 5) & (agents[:, 17] < hospital_recover)]))
+              len(agents[(agents[:, 13] == 2) | (agents[:, 13] == 3.5) | 
+                          (agents[:, 13] == 4) | (agents[:, 13] == 5)]))
         R = compute_R(agents, day)
         #new_infections = len(agents[agents[:, 13] == 2]) +len(agents[agents[:, 13]==4])+len(agents[agents[:,13]==3.5])+len(agents[agents[:,13]==5])+len(agents[agents[:,13]==7]) - len(infected)
         new_infections = len(agents[(agents[:, 13] != 1) & (agents[:, 13] != 3) 
@@ -236,7 +247,7 @@ for sim in range(1,31):
         dead = np.where(agents[:,13]==7)[0]
         print('\tnew infections: ', new_infections)
         print('\tquarantined: ', len(agents[(agents[:, 13] >= 3) & (agents[:, 13] <= 4)]))
-        print('\thospitalized: ', len(agents[(agents[:, 13] == 5) & (agents[:, 17] < hospital_recover)]))
+        print('\thospitalized: ', len(agents[(agents[:, 13] == 5)]))
         print('\tnew admissions: ', len(new_admissions[0]))
         print('\ttotal deaths: ', len(dead))  
         print('\tdaily deaths: ', len(new_deaths[0]))
@@ -252,15 +263,7 @@ for sim in range(1,31):
         del sa_agents
         
         
-        agents[(agents[:, 13] == 3) & (agents[:, 19] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
-        agents[(agents[:, 13] == 3.5) & (agents[:, 19] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
-        agents[(agents[:, 13] == 2) & (agents[:, 17] == diagnosis), 19] = day 
-        agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5)) & (agents[:, 17] == diagnosis), 13] = 4 # sick agents begin quarantine after for days
-        agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 6 # sick agents in quarantine recover 
-        agents[(agents[:, 13] == 5) & (agents[:, 17] == hospital_recover), 13] = 6 # admission end with recovery
-        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 20] = 0 # quararntine count reset for unisolated agents
-        #agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 17] = 0
-        agents[(agents[:, 13] == 1) | (agents[:, 13] == 2) | (agents[:, 13] == 6) | (agents[:, 13] == 7), 24] = 0
+    
         print('\tR:' ,R)
         print('\tVis_R:' ,vis_R)
     
@@ -295,12 +298,13 @@ for sim in range(1,31):
                 build[:, 10] = 1
         
         print('\trecovered: ', len(agents[agents[:, 13] == 6])) 
-        outputs['Results']['Stats'][day] = {'Infected': len(agents[(agents[:, 13] != 1) & (agents[:, 13] != 3)]),
+        outputs['Results']['Stats'][day] = {'Infected': len(agents[(agents[:, 13] == 2) | (agents[:, 13] == 3.5) | 
+                          (agents[:, 13] == 4) | (agents[:, 13] == 5)]),
                         'New_infections': new_infections,
                         'Recovered': len(agents[agents[:, 13] == 6]),
                         'Quarantined': len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4)]),
                         'New_quarantined': len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4) & (agents[:, 19] == day)]),
-                        'Hospitlized': len(agents[(agents[:, 13] == 5) & (agents[:, 17] < hospital_recover)]),
+                        'Hospitalized': len(agents[(agents[:, 13] == 5)]),
                         'New_hospitalizations': len(new_admissions[0]),
                         'Total_dead': len(dead),
                         'New_deaths': len(new_deaths[0]),

@@ -11,9 +11,12 @@ rcParams['font.size'] = 24
 
 in_path = 'outputs/'
 f_range=(1,30)
-columns = ['R', 'Recovered', 'Quarantined', 'Total_infected', 'New_infections', 'Infected']#, 'Known_R']
-colors = ['black', 'green', 'orange', 'red', 'red', 'red', 'pink']
-name = 'lockdown_norm0.025'
+columns = ['R', 'Recovered', 'Quarantined', 'New_quarantined', 
+           'Total_infected', 'New_infections', 'Infected', 'Hospitalized',
+           'New_hospitalizations', 'Total_dead', 'New_deaths']#, 'Known_R']
+colors = ['black', 'green', 'orange', 'orange', 'red', 'red', 'red', 
+          'brown', 'brown', 'grey', 'grey', 'pink']
+name = 'noLockdown_norm0.08'
 out_path = 'figures/'
 
 for i in range(f_range[0], f_range[1]):
