@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
+from parameters import name
 
 rcParams['font.family'] = 'Times New Roman'
 rcParams['font.size'] = 24
@@ -16,7 +17,6 @@ columns = ['R', 'Recovered', 'Quarantined', 'New_quarantined',
            'New_hospitalizations', 'Total_dead', 'New_deaths']#, 'Known_R']
 colors = ['black', 'green', 'orange', 'orange', 'red', 'red', 'red', 
           'brown', 'brown', 'grey', 'grey', 'pink']
-name = 'noLockdown_norm0.08'
 out_path = 'figures/'
 
 for i in range(f_range[0], f_range[1]):

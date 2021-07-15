@@ -8,6 +8,7 @@ from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
 from os import mkdir, listdir
+from parameters import name
 
 if 'outputs' not in listdir():
     mkdir('outputs')
@@ -31,10 +32,10 @@ def compute_R(a, t):#infected):
     new_infections = len(a[(a[:, 13] != 1) & 
                                 (a[:, 13] != 3) & (a[:, 16] == t)])
     sum_I = 0.
-    for i in range(1, recover+1):
-        sum_I += a[(a[:, 13] != 1) & 
-                        (a[:, 13] != 3) & 
-                        ((t - a[:, 16]) == i)].shape[0] * contagious_risk_day.pdf(i)
+    for i in range(1, recover):
+        sum_I += a[(a[:, 13] != 1) 
+                   & (a[:, 13] != 3) 
+                   & ((t - a[:, 16]) == i)].shape[0] * contagious_risk_day.pdf(i)
     if sum_I > 0:
         R = new_infections / sum_I
     else:
@@ -43,9 +44,9 @@ def compute_R(a, t):#infected):
 
 
 def compute_vis_R(a, t):
-    new_known_infections = len(a[(a[:, 17] == diagnosis)])
+    new_known_infections = len(a[(a[:,13]>=4) & (a[:, 17] == diagnosis)])
     sum_I = 0.
-    for i in range(diagnosis+1, recover+1):
+    for i in range(diagnosis+1, recover):
         sum_I += a[(a[:, 13] >= 4) & ((t - a[:, 16]) == i)].shape[0] * contagious_risk_day.pdf(i - diagnosis)
     if sum_I > 0:
         R = new_known_infections / sum_I
@@ -202,8 +203,9 @@ for sim in range(1,31):
         # this allows tracing infection chains - who infected whom and when
         agents[uninfected[np.where(infections)[0]], 21] = agents[infected[np.where(infections)[1]], 0]
         
-        agents[(agents[:, 13] == 3) & (agents[:, 19] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
-        agents[(agents[:, 13] == 3.5) & (agents[:, 19] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
+        agents[(agents[:, 13] == 3) & (agents[:, 20] == quarantine), 13] = 1 # end of quarantine for helathy agents, can steel be infected
+        print(len(agents[agents[:, 13]==3]))
+        agents[(agents[:, 13] == 3.5) & (agents[:, 20] == quarantine), 13] = 2 # end of quarantine for infected undiscovered agents
         agents[(agents[:, 13] == 2) & (agents[:, 17] == diagnosis), 19] = day 
         agents[((agents[:, 13] == 2) | (agents[:, 13] == 3.5)) & (agents[:, 17] == diagnosis), 13] = 4 # sick agents begin quarantine after for days
         agents[(agents[:, 13] == 4) & (agents[:, 17] == recover), 13] = 6 # sick agents in quarantine recover 
@@ -247,20 +249,27 @@ for sim in range(1,31):
         dead = np.where(agents[:,13]==7)[0]
         print('\tnew infections: ', new_infections)
         print('\tquarantined: ', len(agents[(agents[:, 13] >= 3) & (agents[:, 13] <= 4)]))
+        print('\tnew quarantined: ', len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4) & (agents[:, 19] == day)]))
         print('\thospitalized: ', len(agents[(agents[:, 13] == 5)]))
         print('\tnew admissions: ', len(new_admissions[0]))
         print('\ttotal deaths: ', len(dead))  
         print('\tdaily deaths: ', len(new_deaths[0]))
         print('\ttotal infected:',len(agents[(agents[:, 13] != 1) & (agents[:, 13] != 3)]))
         
-        vis_R = compute_vis_R(agents, day)
+        if day > diagnosis:
+            vis_R = outputs['Results']['Stats'][day-diagnosis]['R'] #compute_vis_R(agents, day)
+        else:
+            vis_R = 0
         new_known_infections = len(agents[(agents[:, 17] == diagnosis)])
         sas_vis_R = {}
         for sa in np.unique(build[:, 3]):
-            sa_agents = agents[agents[:, 22] == sa]
-            sas_vis_R[sa] = compute_vis_R(sa_agents, day)
+            if day > diagnosis:
+                sa_agents = agents[agents[:, 22] == sa]
+                sas_vis_R[sa] = outputs['Results']['SAs'][day-diagnosis]['R'][sa] #compute_vis_R(sa_agents, day)
+                del sa_agents
+            else:
+                sas_vis_R[sa] = 0
         outputs['Results']['SAs'][day]['vis_R'] = sas_vis_R
-        del sa_agents
         
         
     
@@ -310,6 +319,8 @@ for sim in range(1,31):
                         'New_deaths': len(new_deaths[0]),
                         'R': R,
                         'Known_R': vis_R}
+        if day > 10 and outputs['Results']['Stats'][day-7]['R']-vis_R != 0:
+            pass
         outputs['Results']['Buildings'][day] = []
         for b in build:
             b_pop = agents[agents[:, 7] == b[0]]
@@ -342,5 +353,5 @@ for sim in range(1,31):
     print((time()- T)/3600)
     outputs['Results']['Infections chain'] = agents[:, [0, 16, 21]].tolist()
     outputs['Total_time'] = time()-T
-    with open('outputs/sim'+str(sim)+scenario_name, 'w') as outfile:
+    with open('outputs/sim'+str(sim)+'_'+name+'.json', 'w') as outfile:
         json.dump(outputs, outfile)
