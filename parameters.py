@@ -48,4 +48,4 @@ quarantine = 7
 # scenario
 scenario_codes = ['ALL'] # ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], ['EDU'], ['REL'], ['DIFF']
 
-name = 'ALL_norm0.08'
+name = 'noLockdown_norm0.08'

@@ -8,10 +8,10 @@ from networkx.drawing.nx_pydot import graphviz_layout
 from parameters import name
 
 rcParams['font.family'] = 'Times New Roman'
-rcParams['font.size'] = 24
+rcParams['font.size'] = 14
 
 in_path = 'outputs/'
-f_range=(1,30)
+f_range=(1,31)
 columns = ['R', 'Recovered', 'Quarantined', 'New_quarantined', 
            'Total_infected', 'New_infections', 'Infected', 'Hospitalized',
            'New_hospitalizations', 'Total_dead', 'New_deaths']#, 'Known_R']
@@ -67,6 +67,48 @@ sm._A = []
 cb = plt.colorbar(sm)
 cb.set_label('Timestamp', horizontalalignment='left')
 fig.savefig(out_path+name+'_contagionChains.png')
+
+# for each simulation
+data = []
+for i in range(f_range[0], f_range[1]):
+    print(i)
+    with open(in_path+'sim'+str(i)+'_'+name+'.json') as f:
+        chain = json.load(f)['Results']['Infections chain']
+    G = nx.DiGraph()
+    for k in chain:
+        if k[2] != 0:
+            G.add_edge(k[2], k[0], timestamp=k[1])
+    #   find all nodes with in_degree == 0 and define as working set
+    working_set = [n for n in G if G.in_degree(n) == 0]
+    j = 0
+    # while working set of nodes is not empty
+    while len(working_set) > 0:
+        # average number of infections per infected agent
+        mean_out = sum([G.out_degree(n) for n in working_set]) / len(working_set)
+        max_out = max([G.out_degree(n) for n in working_set])
+        # average time of infections
+        out_edges = [e for n in working_set for e in G.out_edges(n)]
+        if len(out_edges) > 0:
+            mean_time = sum([G[e[0]][e[1]]['timestamp'] for e in out_edges]) / len(out_edges)
+        else:
+            mean_time = None
+        # save rank, number of nodes, number of infections per node, mean infection time
+        data.append([i, j, len(working_set), mean_out, max_out, mean_time])
+        # update working set - neighbors of nodes currently in working set
+        working_set = [e[1] for e in out_edges]
+        # increase rank by 1
+        j += 1
+        
+# create graph of number of nodes, mean out degree, and mean infection time by chain level
+cont_df = pd.DataFrame(data, columns=['Simulation', 'Rank', 'Nodes', 'Mean infection num',
+                                      'Max infection num', 'Mean infection time'])
+mean_cont = cont_df.groupby(['Simulation', 'Rank']).median()
+columns = ['Nodes', 'Mean infection time', 'Mean infection num', 'Max infection num']
+fig, axs = plt.subplots(4, 1, figsize=(20, 30), sharex=True) 
+for c in range(len(columns)):
+    sns.lineplot(data=mean_cont, x='Rank', y=columns[c], ax=axs[c])
+fig.tight_layout()
+fig.savefig(out_path+name+'_contagionChainsStatistics.png', dpi=600)
 
 results = pd.DataFrame(columns=['BuildingID', 'timestamp', 'infected', 'infected_%'])
 for i in range(f_range[0], f_range[1]):
@@ -135,3 +177,6 @@ sm._A = []
 cb = plt.colorbar(sm)
 cb.set_label('Infections per 1000 residents', horizontalalignment='left')
 fig.savefig(out_path+name+'_zones_network_perCapita.png')
+
+
+
