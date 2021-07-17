@@ -9,10 +9,13 @@ rcParams['font.size'] = 24
 
 in_path = 'outputs/'
 f_range=(1,31)
-columns = ['R', 'Recovered', 'Quarantined', 'Total_infected', 'New_infections', 'Infected']
-colors = ['black', 'green', 'orange', 'red', 'red', 'red', 'pink']
+columns = ['R', 'Recovered', 'Quarantined', 'New_quarantined', 
+           'Total_infected', 'New_infections', 'Infected', 'Hospitalized',
+           'New_hospitalizations', 'Total_dead', 'New_deaths']
+colors = ['black', 'green', 'orange', 'orange', 'red', 'red', 'red', 
+          'brown', 'brown', 'grey', 'grey', 'pink']
 styles = ['-', '--']
-names = ['no_lockdown_norm0.025', 'lockdown_norm0.025']
+names = ['nolockdown_norm0.08', 'ALL_norm0.08']
 legend_names = ['No lockdown',  'Lockdown']
 out_path = 'figures/'
 
@@ -41,3 +44,4 @@ for c in range(len(columns)):
     else:
         axs[c].legend(loc=1)
 fig.savefig(out_path+'stats.png')
+

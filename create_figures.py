@@ -146,8 +146,9 @@ pos = graphviz_layout(G, prog='twopi')
 nodelist=list(dict(deg).keys())
 colors = [zones.index(n)/(len(zones)-1) for n in nodelist]
 weights = [G[e[0]][e[1]]['weight']/20 for e in G.edges]
-node_weights = [(G.out_degree(n, weight='weight')-G[n][n]['weight'])*20 for n in G.nodes]
-node_colors = [G[n][n]['weight'] for n in G.nodes]
+node_weights = [(G.out_degree(n, weight='weight')-G[n][n]['weight'])*20 
+                if n in G[n] else G.out_degree(n, weight='weight')*20 for n in G.nodes]
+node_colors = [G[n][n]['weight'] if n in G[n] else 0 for n in G.nodes]
 pos = graphviz_layout(G, prog='twopi')
 ec = nx.draw(G, pos, connectionstyle='arc3, rad = 0.1', width=weights, 
              nodelist=nodelist, node_size=node_weights, arrowsize=50,
@@ -165,8 +166,9 @@ fig, axs = plt.subplots(figsize=(45,30))
 colors = [zones.index(n)/(len(zones)-1) for n in nodelist]
 weights = [G[e[0]][e[1]]['weight']/20 for e in G.edges]
 node_weights = [(G.out_degree(n, weight='weight')-G[n][n]['weight'])*40/zones_pop[n] 
+                if n in G[n] else G.out_degree(n, weight='weight')*40/zones_pop[n] 
                 for n in G.nodes]
-node_colors = [G[n][n]['weight']/zones_pop[n] for n in G.nodes]
+node_colors = [G[n][n]['weight']/zones_pop[n] if n in G[n] else 0 for n in G.nodes]
 ec = nx.draw(G, pos, connectionstyle='arc3, rad = 0.1', width=weights, 
              nodelist=nodelist, node_size=node_weights, arrowsize=50, with_labels=True,
              node_color=[w/max(node_colors) for w in node_colors], cmap=plt.cm.Wistia, ax=axs,

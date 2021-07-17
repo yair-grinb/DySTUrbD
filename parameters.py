@@ -46,6 +46,8 @@ diagnosis = 7
 quarantine = 7
 
 # scenario
-scenario_codes = ['ALL'] # ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], ['EDU'], ['REL'], ['DIFF']
+scenario_codes = [[], ['ALL'], ['GRADUAL', 'ALL'], ['GRADUAL', 'EDU'], ['GRADUAL', 'REL'], 
+                  ['EDU'], ['REL'], ['DIFF']]
+scenario_code = scenario_codes[2]
 
-name = 'noLockdown_norm0.08'
+name = '_'.join(scenario_code) + '_norm' + str(norm_factor)
