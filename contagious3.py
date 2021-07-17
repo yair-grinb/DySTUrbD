@@ -3,12 +3,11 @@ from create_random_data import create_data
 from communities import create_network
 import networkx as nx
 from random import choice
-from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes, hospital_recover
+from parameters import k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_code, hospital_recover, name
 from time import time
 from scipy.sparse.csgraph import shortest_path
 import json
 from os import mkdir, listdir
-from parameters import name
 
 if 'outputs' not in listdir():
     mkdir('outputs')
@@ -135,7 +134,7 @@ for sim in range(1,31):
         
         bld_visits[bld_visits==0] = np.nan
         #differential quarantine
-        if 'DIFF' in scenario_codes:
+        if 'DIFF' in scenario_code:
             for s in sas_vis_R:
                 if sas_vis_R[s] > 1: #if R is greater than 1 in stat zone
                     build[build[:,3] == s, 10] = 0 #set public and commercial buildings as closed
@@ -277,15 +276,15 @@ for sim in range(1,31):
         print('\tVis_R:' ,vis_R)
     
         
-        if 'GRADUAL' in scenario_codes:
+        if 'GRADUAL' in scenario_code:
             if 1 < vis_R < 2: # if visible R is between 1 & 2  
-                if 'ALL' in scenario_codes:
+                if 'ALL' in scenario_code:
                     indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
                                                 size=int(build[build[:,1]>=3,10].size * 0.5)) 
-                elif 'EDU' in scenario_codes:
+                elif 'EDU' in scenario_code:
                     education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
                     indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
-                elif 'REL' in scenario_codes:
+                elif 'REL' in scenario_code:
                     religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
                     indices = np.random.choice(religious, replace=False, size=int(religious.size*0.5))
                 build[indices,10] = 0 #close all selected buildings
@@ -295,12 +294,12 @@ for sim in range(1,31):
                 build[:,10] = 1 #set all buildings as open
         else:
             if 1 <  vis_R:
-                if 'ALL' in scenario_codes:
+                if 'ALL' in scenario_code:
                     build[build[:, 1] >= 3, 10] = 0
-                elif 'EDU' in scenario_codes:
+                elif 'EDU' in scenario_code:
                     education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
                     build[education, 10] = 0
-                elif 'REL' in scenario_codes:
+                elif 'REL' in scenario_code:
                     religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
                     build[religious, 10] = 0
             else:
