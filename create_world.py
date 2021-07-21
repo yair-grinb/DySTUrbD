@@ -18,7 +18,7 @@ def create_agent_class(f, idxs, app_idx=None):
         if app_idx is not None:
             e += app_idx
         entities.append(e)
-    del reader, e, row, i
+    del reader, e, row
     return np.array(entities)
 
 

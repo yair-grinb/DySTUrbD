@@ -53,6 +53,59 @@ def compute_vis_R(a, t):
         R = 0
     return R
 
+# get buildings to close down by scenario
+def building_lockdown(b, sc, vR, prevVR):
+    lockdown = np.ones(len(b))
+    if 'GRADUAL' in sc:
+        if 1 < vR < 2: # if visible R is between 1 & 2  
+            if prevVR <= 1 or prevVR >=2:
+                if 'ALL' in sc:
+                    non_residential = np.where(b[:,1]>=3)[0]
+                    lockdown[np.random.choice(non_residential, replace=False,
+                                                    size=int(non_residential.size * 0.5))] = 0
+                else:
+                    if 'EDU' in sc:
+                        education = np.where((b[:, 9] == 5310) | (b[:, 9] == 5312) | 
+                                             (b[:, 9] == 5338)| (b[:, 9] == 5523)| 
+                                             (b[:, 9] == 5525)| (b[:, 9] == 5305)| 
+                                             (b[:, 9] == 5300)| (b[:, 9] == 5340))[0]
+                        lockdown[np.random.choice(
+                            education, replace=False, size=int(education.size*0.5))] = 0
+                    if 'REL' in sc:
+                        religious = np.where((b[:,9] == 5501) | (b[:,9] == 5521))[0]
+                        lockdown[np.random.choice(
+                            religious, replace=False, size=int(religious.size*0.5))] = 0
+            else:
+                lockdown = b[:, 10]
+        elif vR >= 2: # if visible R is greater than 2 
+            if 'ALL' in sc:
+                lockdown[b[:, 1] >= 3] = 0 #close all commercial and public buildings
+            else:
+                if 'EDU' in sc:
+                    education = np.where((b[:, 9] == 5310) | (b[:, 9] == 5312) | 
+                                         (b[:, 9] == 5338)| (b[:, 9] == 5523)| 
+                                         (b[:, 9] == 5525)| (b[:, 9] == 5305)| 
+                                         (b[:, 9] == 5300)| (b[:, 9] == 5340))[0]
+                    lockdown[education] = 0
+                if 'REL' in sc:
+                    religious = np.where((b[:,9] == 5501) | (b[:,9] == 5521))[0]
+                    lockdown[religious] = 0
+    else:
+        if 1 <  vR:
+            if 'ALL' in sc:
+                lockdown[b[:, 1] >= 3] = 0
+            else:
+                if 'EDU' in sc:
+                    education = np.where((b[:, 9] == 5310) | (b[:, 9] == 5312) | 
+                                         (b[:, 9] == 5338)| (b[:, 9] == 5523)| 
+                                         (b[:, 9] == 5525)| (b[:, 9] == 5305)| 
+                                         (b[:, 9] == 5300)| (b[:, 9] == 5340))[0]
+                    lockdown[education] = 0
+                if 'REL' in sc:
+                    religious = np.where((b[:,9] == 5501) | (b[:,9] == 5521))[0]
+                    lockdown[religious] = 0
+    return lockdown
+
 
 for sim in range(1,31):
     outputs = {'Sim':sim, 'Results':{'Stats':{}, 'Buildings':{}, 'SAs':{}, 'IO_mat':{}}}
@@ -123,26 +176,18 @@ for sim in range(1,31):
     while len(agents[agents[:, 13] == 2]) + len(agents[agents[:, 13] == 3.5]) + len(agents[agents[:, 13] == 4]) + len(agents[agents[:, 13] == 5])> 0:    
     #while day<14:
         t = time()
+        
         # get buildings status - open/close == 1/0 and multiply bld_visits_by_agents by it
         bld_visits = bld_visits_by_agents * build[
             np.argmax(build[:, 0][None, :] == bld_visits_by_agents[:, :, None], axis=2), 10]
         # check if agents are in isolation and if yes - all activities but first (home) become zero
         bld_visits[:, 1:] = bld_visits[:, 1:] * ((agents[:, 13] != 3) & (agents[:, 13] != 4)
                                                   & (agents[:, 13] != 3.5)).reshape((len(agents), 1))
-        # check if agents are admitted or dead and if yes - all activities but first (home) become zero
+        # check if agents are admitted or dead and if yes - all activities
         bld_visits[:, 0:] = bld_visits[:, 0:] * ((agents[:, 13] != 5) & (agents[:, 13] != 7)).reshape((len(agents), 1))
         
         bld_visits[bld_visits==0] = np.nan
-        #differential quarantine
-        if 'DIFF' in scenario_code:
-            for s in sas_vis_R:
-                if sas_vis_R[s] > 1: #if R is greater than 1 in stat zone
-                    build[build[:,3] == s, 10] = 0 #set public and commercial buildings as closed
-                    bld_visits[:, 1:] = bld_visits[:, 1:] * (agents[:,22] != s).reshape((len(agents), 1)) #check if agents live in quarantined stat zone and if yes - all activities but first (home) become zero
-                    bld_visits[bld_visits==0] = np.nan
-                else:
-                  build[build[:,3] == s, 10] = 1 #if smaller than 1 set public and commercial buildings as open  
-            del s
+        
             
         agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5)| (agents[:, 13] == 5), 17] = day - agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5) | (agents[:, 13] == 5), 16] # update number of days since infecton for carriers
         agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5) | (agents[:, 13] == 4), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5) | (agents[:, 13] == 4), 19] # update number of days since quarantine for carriers
@@ -254,6 +299,9 @@ for sim in range(1,31):
         print('\ttotal deaths: ', len(dead))  
         print('\tdaily deaths: ', len(new_deaths[0]))
         print('\ttotal infected:',len(agents[(agents[:, 13] != 1) & (agents[:, 13] != 3)]))
+        print('\tclosed buildings:', len(build[build[:, 10] == 0]))
+        print('\tzones in lockdown:', len(np.unique(build[build[:,10]==0,3])),
+              'out of', len(np.unique(build[:, 3])), 'zones')
         
         if day > diagnosis:
             vis_R = outputs['Results']['Stats'][day-diagnosis]['R'] #compute_vis_R(agents, day)
@@ -273,53 +321,21 @@ for sim in range(1,31):
         
     
         print('\tR:' ,R)
-        print('\tVis_R:' ,vis_R)
-    
-        
-        if 'GRADUAL' in scenario_code:
-            if 1 < vis_R < 2: # if visible R is between 1 & 2  
-                if 'ALL' in scenario_code:
-                    indices = np.random.choice(np.where(build[:,1]>=3)[0], replace=False,
-                                                size=int(build[build[:,1]>=3,10].size * 0.5)) 
-                elif 'EDU' in scenario_code:
-                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
-                    indices = np.random.choice(education, replace=False, size=int(education.size*0.5))
-                elif 'REL' in scenario_code:
-                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
-                    indices = np.random.choice(religious, replace=False, size=int(religious.size*0.5))
-                build[indices,10] = 0 #close all selected buildings
-            elif vis_R > 2: # if visible R is greater than 2 
-                build[build[:, 1] >= 3, 10] = 0 #close all commercial and public buildings
-            else: # if visible R smaller than 1 
-                build[:,10] = 1 #set all buildings as open
-        else:
-            if 1 <  vis_R:
-                if 'ALL' in scenario_code:
-                    build[build[:, 1] >= 3, 10] = 0
-                elif 'EDU' in scenario_code:
-                    education = np.where((build[:, 9] == 5310) | (build[:, 9] == 5312) | (build[:, 9] == 5338)| (build[:, 9] == 5523)| (build[:, 9] == 5525)| (build[:, 9] == 5305)| (build[:, 9] == 5300)| (build[:, 9] == 5340))[0]
-                    build[education, 10] = 0
-                elif 'REL' in scenario_code:
-                    religious = np.where((build[:,9] == 5501) | (build[:,9] == 5521))[0]
-                    build[religious, 10] = 0
-            else:
-                build[:, 10] = 1
-        
+        print('\tVis_R:' ,vis_R)        
         print('\trecovered: ', len(agents[agents[:, 13] == 6])) 
-        outputs['Results']['Stats'][day] = {'Infected': len(agents[(agents[:, 13] == 2) | (agents[:, 13] == 3.5) | 
+        outputs['Results']['Stats'][day] = {'Active infected': len(agents[(agents[:, 13] == 2) | (agents[:, 13] == 3.5) | 
                           (agents[:, 13] == 4) | (agents[:, 13] == 5)]),
-                        'New_infections': new_infections,
+                        'Daily infections': new_infections,
                         'Recovered': len(agents[agents[:, 13] == 6]),
                         'Quarantined': len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4)]),
-                        'New_quarantined': len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4) & (agents[:, 19] == day)]),
+                        'Daily quarantined': len(agents[(agents[:,13]>=3) & (agents[:, 13] <= 4) & (agents[:, 19] == day)]),
                         'Hospitalized': len(agents[(agents[:, 13] == 5)]),
-                        'New_hospitalizations': len(new_admissions[0]),
-                        'Total_dead': len(dead),
-                        'New_deaths': len(new_deaths[0]),
+                        'Daily hospitalizations': len(new_admissions[0]),
+                        'Total Dead': len(dead),
+                        'Daily deaths': len(new_deaths[0]),
                         'R': R,
-                        'Known_R': vis_R}
-        if day > 10 and outputs['Results']['Stats'][day-7]['R']-vis_R != 0:
-            pass
+                        'Known R': vis_R,
+                        'Closed buildings': len(build[build[:, 10] == 0])}
         outputs['Results']['Buildings'][day] = []
         for b in build:
             b_pop = agents[agents[:, 7] == b[0]]
@@ -329,12 +345,12 @@ for sim in range(1,31):
                 outputs['Results']['Buildings'][day].append([b[0], b_infected, 
                                                               b_infected / b_pop.shape[0]])
         if day==0:
-            outputs['Results']['Stats'][day]['Total_infected'] = outputs['Results']['Stats'][day]['Infected']
+            outputs['Results']['Stats'][day]['Total infected'] = outputs['Results']['Stats'][day]['Active infected']
         else:
-            outputs['Results']['Stats'][day]['Total_infected'] = outputs['Results']['Stats'][day-1]['Total_infected'] + new_infections
-        outputs['Results']['Stats'][day]['Susceptible'] = len(agents) - outputs['Results']['Stats'][day]['Total_infected']
+            outputs['Results']['Stats'][day]['Total infected'] = outputs['Results']['Stats'][day-1]['Total infected'] + new_infections
+        outputs['Results']['Stats'][day]['Susceptible'] = len(agents) - outputs['Results']['Stats'][day]['Total infected']
         del infected, uninfected, infected_blds, uninfected_blds, exposure, infection_prob, infected_quar
-        del rand_cont, new_infected, new_infections, R, vis_R, #indices, indices2
+        del rand_cont, new_infected, new_infections, R #indices, indices2
         print('\t'+str(round(time()-t)))
         outputs['Results']['Stats'][day]['Time'] = time()-t
         sas = np.unique(build[:, 3])
@@ -348,6 +364,26 @@ for sim in range(1,31):
                 for i in range(len(counts[0])):
                     infect_mat[sa][counts[0][i]] = int(counts[1][i])
         outputs['Results']['IO_mat'][day] = infect_mat
+        
+        if 'DIFF' in scenario_code: # differential lockdown
+            for s in sas_vis_R:
+                if day!=0:
+                    prevVR = outputs['Results']['SAs'][day-1]['Vis_R'][s]
+                else:
+                    prevVR = 0
+                lockdown = building_lockdown(build[build[:, 3] == s], scenario_code, 
+                                             sas_vis_R[s], prevVR)
+                build[build[:, 3] == s, 10] = lockdown
+            del s, lockdown
+        else: # full lockdown
+            if day!=0:
+                prevVR = outputs['Results']['Stats'][day-1]['Known R']
+            else:
+                prevVR = 0
+            lockdown = building_lockdown(build, scenario_code, vis_R, prevVR)
+            build[:, 10] = lockdown
+            del lockdown
+        del vis_R
         day += 1
     print((time()- T)/3600)
     outputs['Results']['Infections chain'] = agents[:, [0, 16, 21]].tolist()

@@ -12,9 +12,9 @@ rcParams['font.size'] = 14
 
 in_path = 'outputs/'
 f_range=(1,31)
-columns = ['R', 'Recovered', 'Quarantined', 'New_quarantined', 
-           'Total_infected', 'New_infections', 'Infected', 'Hospitalized',
-           'New_hospitalizations', 'Total_dead', 'New_deaths']#, 'Known_R']
+columns = ['R', 'Recovered', 'Quarantined', 'Daily quarantined', 
+           'Total infected', 'Daily infections', 'Active infected', 'Hospitalized',
+           'Daily hospitalizations', 'Total Dead', 'Daily deaths']#, 'Known R']
 colors = ['black', 'green', 'orange', 'orange', 'red', 'red', 'red', 
           'brown', 'brown', 'grey', 'grey', 'pink']
 out_path = 'figures/'
@@ -30,9 +30,15 @@ for i in range(f_range[0], f_range[1]):
             results = results.append(df)
 
 results = results.fillna(0).reset_index().rename(columns={'index':'Timestamp'})
-fig, axs = plt.subplots(len(columns), figsize=(20,20), sharex=True)
+min_max_timestamp = min(results.groupby('Sim').max()['Timestamp'])
+results = results[results.Timestamp <= min_max_timestamp]
+rows_num = int(len(columns)/2) + 1
+fig, axs = plt.subplots(rows_num, 2, figsize=(20,20), sharex=True)
 for c in range(len(columns)):
-    sns.lineplot(data=results, x='Timestamp', y=columns[c], ax=axs[c], color=colors[c])
+    row = int(c/2)
+    col = c-row*2
+    sns.lineplot(data=results, x='Timestamp', y=columns[c], ax=axs[row][col], color=colors[c])
+fig.tight_layout()
 fig.savefig(out_path+name+'_stats.png')
 
 blds_file = 'data/bldg_with_inst_orig.csv'
@@ -71,7 +77,6 @@ fig.savefig(out_path+name+'_contagionChains.png')
 # for each simulation
 data = []
 for i in range(f_range[0], f_range[1]):
-    print(i)
     with open(in_path+'sim'+str(i)+'_'+name+'.json') as f:
         chain = json.load(f)['Results']['Infections chain']
     G = nx.DiGraph()
@@ -151,9 +156,9 @@ node_weights = [(G.out_degree(n, weight='weight')-G[n][n]['weight'])*20
 node_colors = [G[n][n]['weight'] if n in G[n] else 0 for n in G.nodes]
 pos = graphviz_layout(G, prog='twopi')
 ec = nx.draw(G, pos, connectionstyle='arc3, rad = 0.1', width=weights, 
-             nodelist=nodelist, node_size=node_weights, arrowsize=50,
-             node_color=[w/max(node_colors) for w in node_colors], cmap=plt.cm.Wistia, ax=axs,
-             with_labels=True, font_size=30)
+              nodelist=nodelist, node_size=node_weights, arrowsize=50,
+              node_color=[w/max(node_colors) for w in node_colors], cmap=plt.cm.Wistia, ax=axs,
+              with_labels=True, font_size=30)
 sm = plt.cm.ScalarMappable(cmap=plt.cm.Wistia, norm=plt.Normalize(vmin=0, 
                                                                   vmax=max(node_colors)))
 sm._A = []
@@ -170,9 +175,9 @@ node_weights = [(G.out_degree(n, weight='weight')-G[n][n]['weight'])*40/zones_po
                 for n in G.nodes]
 node_colors = [G[n][n]['weight']/zones_pop[n] if n in G[n] else 0 for n in G.nodes]
 ec = nx.draw(G, pos, connectionstyle='arc3, rad = 0.1', width=weights, 
-             nodelist=nodelist, node_size=node_weights, arrowsize=50, with_labels=True,
-             node_color=[w/max(node_colors) for w in node_colors], cmap=plt.cm.Wistia, ax=axs,
-             font_size=30)
+              nodelist=nodelist, node_size=node_weights, arrowsize=50, with_labels=True,
+              node_color=[w/max(node_colors) for w in node_colors], cmap=plt.cm.Wistia, ax=axs,
+              font_size=30)
 sm = plt.cm.ScalarMappable(cmap=plt.cm.Wistia, norm=plt.Normalize(vmin=0, 
                                                                   vmax=max(node_colors)))
 sm._A = []
