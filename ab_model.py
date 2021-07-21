@@ -54,6 +54,7 @@ def compute_diff(hh, b):
     members_jobs = members[members[:, 5] == 1, 7]
     if len(members_jobs) > 0:
         jobs_juncs = gv.bldgs[gv.jobs[np.in1d(gv.jobs[:, -1], members_jobs), 1].astype(int), 13]
+        # TODO - get indices from nodes and replace current references to these
         mean_commute = np.mean(np.ma.masked_invalid(gv.dists[b[13]][jobs_juncs.astype(int)]))
         dist_score = mean_commute / np.max(np.ma.masked_invalid(gv.dists[b[13]]))
     
@@ -143,7 +144,8 @@ def change_lu(b, old, new):
                     # job new
                     gv.data.append(['i', gv.tick, gv.indivs[e, 0], gv.households[gv.households[:, 0] == gv.indivs[e, 1], 0], 
                                     1, 1, 1, 0, 1, 0, gv.indivs[e, 11], 0., gv.indivs[e, 7], np.nan])
-                    create_routines(e)
+                    # TODO - remove edge between agent and building and change column 12 to None
+                    gv.routines[gv.indivs[e, 0]] = create_routines(gv.indivs[e, [0, 7, 12, 18, 7]], True)
                 gv.indivs[emp_in_b[:, None], [3, 5, 7, 11]] = np.repeat([[0, 0, np.nan, 0]], len(emp_in_b), axis=0)
             for j in jobs_in_b:
                 # output - 'j', tick, id, bldg id old, bldg id new, worker id old, worker id new, wage
@@ -178,44 +180,44 @@ def change_lu(b, old, new):
     gv.changedLU = True
 
 
-def create_event():
-    # determine epicenter
-    center = random.choice(gv.junctions)
+# def create_event():
+#     # determine epicenter
+#     center = random.choice(gv.junctions)
     
-    # identify effected buildings
-    e_dists = ((gv.bldgs[:, 6] - center[0])**2. + (gv.bldgs[:, 7] - center[1])**2.)**0.5
-    rand = np.random.rand(len(gv.bldgs))
-    effect_scores = e_dists * 10.**mp.intensity / (mp.event_m * gv.bldgs[:, 2] * np.abs(np.log10(e_dists.astype(float))))
-    gv.bldgs[rand <= effect_scores, 9] = 1.
+#     # identify effected buildings
+#     e_dists = ((gv.bldgs[:, 6] - center[0])**2. + (gv.bldgs[:, 7] - center[1])**2.)**0.5
+#     rand = np.random.rand(len(gv.bldgs))
+#     effect_scores = e_dists * 10.**mp.intensity / (mp.event_m * gv.bldgs[:, 2] * np.abs(np.log10(e_dists.astype(float))))
+#     gv.bldgs[rand <= effect_scores, 9] = 1.
     
-    # compute secondary effects - roads, residents, jobs
-    for b in np.where(gv.bldgs[:, 9] == 1)[0]:
-        # output - 'b', tick, id, old lu, new lu, old apartments, new apartments
-        gv.data.append(['b', gv.tick, gv.bldgs[b, 0], gv.bldgs[b, 1], 0, gv.bldgs[:, 12], 0])
+#     # compute secondary effects - roads, residents, jobs
+#     for b in np.where(gv.bldgs[:, 9] == 1)[0]:
+#         # output - 'b', tick, id, old lu, new lu, old apartments, new apartments
+#         gv.data.append(['b', gv.tick, gv.bldgs[b, 0], gv.bldgs[b, 1], 0, gv.bldgs[:, 12], 0])
         
-        # find effected roads
-        near_j = gv.junctions_array[gv.bldgs[b, 13]]
-        nearby_roads = (((gv.roads_juncs[:, 0] == near_j)[:, 0]) | (gv.roads_juncs[:, 1] == near_j)[:, 1])
-        for r in gv.roads[nearby_roads]:
-            if gv.graph.has_edge((r[1], r[2]), (r[3], r[4])):
-                gv.graph.remove_edge((r[1], r[2]), (r[3], r[4]))
-            # output - 'r', tick, id, previous_state, new_state
-            gv.data.append(['r', gv.tick, r[0], 1, 0])
+#         # find effected roads
+#         near_j = gv.junctions_array[gv.bldgs[b, 13]]
+#         nearby_roads = (((gv.roads_juncs[:, 0] == near_j)[:, 0]) | (gv.roads_juncs[:, 1] == near_j)[:, 1])
+#         for r in gv.roads[nearby_roads]:
+#             if gv.graph.has_edge((r[1], r[2]), (r[3], r[4])):
+#                 gv.graph.remove_edge((r[1], r[2]), (r[3], r[4]))
+#             # output - 'r', tick, id, previous_state, new_state
+#             gv.data.append(['r', gv.tick, r[0], 1, 0])
         
-        # make roads unavailable
-        gv.roads[nearby_roads, 6] = 0
+#         # make roads unavailable
+#         gv.roads[nearby_roads, 6] = 0
     
-    compute_network()
+#     compute_network()
 
-    for b in np.where(gv.bldgs[:, 9] == 1)[0]:
-        # change building land-use
-        change_lu(b, gv.bldgs[b, 1], 0)
+#     for b in np.where(gv.bldgs[:, 9] == 1)[0]:
+#         # change building land-use
+#         change_lu(b, gv.bldgs[b, 1], 0)
 
-    # compute new routines
-    for i in range(gv.indivs.shape[0]):
-        create_routines(i)
+#     # compute new routines
+#     for i in range(gv.indivs.shape[0]):
+#         create_routines(i)
     
-    gv.changedLU = False
+#     gv.changedLU = False
 
 
 def hh_step(h_idx):
@@ -230,6 +232,8 @@ def hh_step(h_idx):
                 gv.data.append(['b', gv.tick, gv.households[h_idx, 1], 0, 1, 0,
                                 gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1], 12]])
             for i in np.where(gv.indivs[:, 1] == gv.households[h_idx, 0])[0]:
+                # TODO - create edge between agent and building and remove edge to previous home and change column 7 accordingly
+                # adjust create routines
                 create_routines(i)
             return False
         else:
@@ -242,13 +246,14 @@ def find_wp(i):
             [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(len(mp.events_set))]):
         av_jobs = np.where(np.isnan(gv.jobs[:, 2]).astype(float))[0]
         home = gv.bldgs[gv.bldgs[:, 0] == gv.households[gv.households[:, 0] == gv.indivs[i, 1], 1]][0]
-        max_d = np.max(np.ma.masked_invalid(gv.dists[home[13]]))
+        idx = np.where(array(gv.graph.nodes()) == gv.indivs[i, 0])[0]
+        max_d = np.max(np.ma.masked_invalid(gv.dists[idx]))
         min_w = np.min(gv.jobs[av_jobs, 0])
         max_w = np.max(gv.jobs[av_jobs, 0])
         for k in range(min(7, len(av_jobs))):
             j_ix = random.choice(range(len(av_jobs)))
             j = av_jobs[j_ix]
-            d = gv.dists[home[13]][gv.bldgs[gv.jobs[j, 1].astype(int), 13]]
+            d = gv.dists[idx][np.where(np.array(gv.graph.nodes)==gv.bldgs[gv.jobs[j, 1].astype(int), 13])]
             score = 1. - d / max_d
             score += (gv.jobs[j, 0] - min_w) / (max_w - min_w + 0.000001)
             score = score / 2.
@@ -262,6 +267,8 @@ def find_wp(i):
                 gv.data.append(['j', gv.tick, gv.jobs[j, -1], gv.bldgs[gv.jobs[j, 1].astype(int), 0],
                                 gv.bldgs[gv.jobs[j, 1].astype(int), 0], np.nan, gv.indivs[i, 0], gv.jobs[j, 0]])
                 gv.jobs[j, 2] = gv.indivs[i, 0]
+                # TODO - add edge between agent and job's building, update column 12, recalculate distances, recalculate distances
+                # adjust create routines
                 create_routines(i)
                 break
             av_jobs = np.delete(av_jobs, j_ix, 0)
@@ -273,7 +280,7 @@ def find_wp(i):
                 # employed new, employed locally old, employed locally new, income old, income new, job old, job new
                 gv.data.append(['i', gv.tick, gv.indivs[i, 0], gv.indivs[i, 1], 1, 1, 0, 1, 0, 0, 0, gv.indivs[i, 8], np.nan, 0])
                 gv.indivs[i, [3, 5, 7, 10, 11]] = [1, 0, 0, 0, gv.indivs[i, 8]]
-                create_routines(i)
+                # create_routines(i)
             elif 1 - math.exp(-gv.indivs[i, 10] / mp.search_length) > random.random():
                 gv.data.append(['i', gv.tick, gv.indivs[i, 0], gv.indivs[i, 1], 1, 0, 0, 0, 0, 0, 0, 0, np.nan, np.nan])
                 gv.indivs[i, [6, 10]] = [0, 0]
@@ -310,9 +317,9 @@ def bldg_step(b):
             change_lu(b, 0, 4)
     
     if gv.tick > 30:
-        z_traff = percentileofscore(gv.bldgs_traff_dist, gv.bldgs_traff_dist[b])
+        z_visits = percentileofscore(gv.bldgs_visits_dist, gv.bldgs_visits_dist[b])
         z_fs = percentileofscore(gv.bldgs[gv.bldgs[:, 1] == 3, 4], gv.bldgs[b, 4])
-        score = z_traff - z_fs
+        score = z_visits - z_fs
         
         if gv.bldgs[b, 1] < 2 and gv.bldgs[b, 9] == 0 and 20 < score < 40:
             # output - 'b', tick, id, old lu, new lu, old apartments, new apartments
@@ -380,6 +387,8 @@ def in_migration():
                         gv.indivs[k, [3, 5]] = [0, 0]
                     elif gv.indivs[k, 7] == 0:
                         gv.indivs[k, 5] = 0
+                # TODO - integrate agent into network by creating edges to the most similar agents and to home, workplace, etc., recalculate distances
+                # adjust create routines
                 create_routines(k)
                 gv.data.append(['i_im', gv.tick] + list(gv.indivs[k]))
             gv.households[-1, 2] = np.sum(gv.indivs[(gv.indivs[:, 1] == h_id) & (gv.indivs[:, 3] == 1), 11])
@@ -445,9 +454,6 @@ def general_step():
     gv.i_vacancies = 1. - float(len(gv.jobs[np.isnan(gv.jobs[:, 2].astype(float))])) / float(len(gv.jobs))
     gv.i_value = np.sum(gv.bldgs[gv.bldgs[:, 1] != 0, 4])
     
-    if gv.tick in mp.events_set:
-        create_event()
-    
     t = time()
     
     h = 0
@@ -458,31 +464,44 @@ def general_step():
     
     for i in range(len(gv.indivs)):
         i_step(i)
+        
+        # TODO - create epidemological function including all relevant functions:
+        # building visits, counter, contagion, quarantine, hospitalization, death, R
     
-    freed = False
-    for r in range(len(gv.roads)):
-        freed2 = road_step(r)
-        if freed2:
-            freed = True
+    # freed = False
+    # for r in range(len(gv.roads)):
+    #     freed2 = road_step(r)
+    #     if freed2:
+    #         freed = True
     
     # compute traffic on roads
-    gv.traff_hist = np.append(gv.traff_hist, np.array([0 for i in range(len(gv.roads))])[np.newaxis].T, axis=1)
-    visits = [j for i in gv.indivs[:, 0] for j in gv.routines[i]]
-    visits_freq = np.unique(visits, return_counts=True)
-    if len(visits_freq[1]) > 0:
-        gv.traff_hist[visits_freq[0], -1] += visits_freq[1]
+    #gv.traff_hist = np.append(gv.traff_hist, np.array([0 for i in range(len(gv.roads))])[np.newaxis].T, axis=1)
+    # TODO - get data from building visits instead of traffic
+    # count the number of times each building was visited (excluding home) using np.unique(bld_visits[:, 1:], return_counts=True)
+    # remember to exclude None
+    
+    # add one new empty column to gv.visits_hist
+    # populate the last column with the product of the above
+    
+    #visits = [j for i in gv.indivs[:, 0] for j in gv.routines[i]]
+    # visits_freq = np.unique(visits, return_counts=True)
+    #if len(visits_freq[1]) > 0:
+    #    gv.traff_hist[visits_freq[0], -1] += visits_freq[1]
 
     if gv.tick > 30:
-        gv.traff_hist = gv.traff_hist[:, 1:]
-    gv.roads[:, 8] = np.mean(gv.traff_hist, axis=1)
+        gv.visits_hist = gv.visits_hist[:, 1:]
+    mean_visits = np.mean(gv.visits_hist, axis=1) # average visits per building over last 30 iterations
+    # gv.roads[:, 8] = np.mean(gv.traff_hist, axis=1)
     
-    if freed:
-        compute_network()
+    #if freed:
+    #    compute_network()
     
     for b in range(len(gv.bldgs)):    
-        nearby_traffic = gv.roads[(np.all(gv.roads_juncs[:, 0] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)) |
-                                  (np.all(gv.roads_juncs[:, 1] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)), 8]
-        gv.bldgs_traff_dist[b] = np.mean(nearby_traffic)
+        # TODO - identify buildings within 100m from b, compute the avrage of mean_visits in these buildings
+        # and save into a variable called nearby_visits
+        #nearby_traffic = gv.roads[(np.all(gv.roads_juncs[:, 0] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)) |
+        #                          (np.all(gv.roads_juncs[:, 1] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)), 8]
+        gv.bldgs_visits_dist[b] = np.mean(nearby_visits)
     
     if gv.tick > mp.events_set[0]:
         gv.bldgs[:, 8] += 1
@@ -500,9 +519,9 @@ def general_step():
         if len(gv.jobs[np.isnan(gv.jobs[:, 2].astype(float))]) > 0:
             labor_market_model()
     
-    if freed or gv.changedLU:
-        for i in range(len(gv.indivs)):
-            create_routines(i)
+    #if freed or gv.changedLU:
+    #    for i in range(len(gv.indivs)):
+    #        create_routines(i)
     
     ap_vals = gv.bldgs[gv.bldgs[:, 1] <= 1, 10] / gv.bldgs[gv.bldgs[:, 1] <= 1, 12]
     ap_vals_r = np.repeat(ap_vals, gv.bldgs[gv.bldgs[:, 1] <= 1, 12].astype(int))
@@ -519,7 +538,7 @@ def general_step():
     
     print gv.tick, round(time() - t, 2), len(gv.bldgs[gv.bldgs[:, 1] == 0]),
     print len(gv.bldgs[gv.bldgs[:, 1] == 1]), len(gv.bldgs[gv.bldgs[:, 1] == 3]), len(gv.bldgs[gv.bldgs[:, 1] == 4]),
-    print len(gv.households), len(gv.indivs), np.mean(gv.indivs[:, 8]), np.mean(gv.traff_hist[:, -1]),
+    print len(gv.households), len(gv.indivs), np.mean(gv.indivs[:, 8])#, np.mean(gv.traff_hist[:, -1]),
     print np.std(gv.traff_hist[:, -1], ddof=1)
     
     gc.collect()

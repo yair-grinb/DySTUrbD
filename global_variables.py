@@ -8,7 +8,7 @@ junctions = None
 junctions_array = None
 roads_juncs = None
 graph = None
-traff_hist = None
+visits_hist = None
 dists = None
 routes = None
 routines = {}
@@ -23,7 +23,7 @@ avg_incms = []
 i_vacancies = None
 i_value = None
 changedLU = False
-bldgs_traff_dist = None
+bldgs_visits_dist = None
 
 # input files
 # zonesFile = 'data/zones_wgs_np.csv'

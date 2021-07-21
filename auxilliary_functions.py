@@ -6,21 +6,19 @@ import scipy.spatial as spatial
 from parameters import beta, w_a, w_i, w_d, b_min_prob, a_min_prob, k, norm_factor, recover, a_dist, bld_dist, contagious_risk_day, quarantine, diagnosis, scenario_codes, risk_by_age, hospital_recover
 from scipy.sparse.csgraph import shortest_path
 
-def compute_network():
-    r_dists = dict(nx.all_pairs_dijkstra_path_length(gv.graph, weight='weight'))
-    gv.dists = []
-    for i in range(len(gv.junctions)):
-        gv.dists.append([])
-        for j in range(len(gv.junctions)):
-            if gv.junctions[j] in r_dists[gv.junctions[i]]:
-                gv.dists[-1].append(r_dists[gv.junctions[i]][gv.junctions[j]])
-            else:
-                gv.dists[-1].append(np.inf)
-    gv.dists = np.array(gv.dists)
-    gv.routes = dict(nx.all_pairs_dijkstra_path(gv.graph, weight='weight'))
+# def compute_network():
+#     r_dists = dict(nx.all_pairs_dijkstra_path_length(gv.graph, weight='weight'))
+#     gv.dists = []
+#     for i in range(len(gv.junctions)):
+#         gv.dists.append([])
+#         for j in range(len(gv.junctions)):
+#             if gv.junctions[j] in r_dists[gv.junctions[i]]:
+#                 gv.dists[-1].append(r_dists[gv.junctions[i]][gv.junctions[j]])
+#             else:
+#                 gv.dists[-1].append(np.inf)
+#     gv.dists = np.array(gv.dists)
+    # gv.routes = dict(nx.all_pairs_dijkstra_path(gv.graph, weight='weight'))
 
-
-# TODO: Paste create_network from communities(done), verify it works
 
 def create_social_network(agents, households, build):
     # ALL DISTANCES ARE COMPUTED IN PROBABILITIES - HIGHER VALUES MEAN CLOSER CONTACT
@@ -92,25 +90,24 @@ def get_path(o, d):
     return route
 
 
-# TODO: replace code with routine creation from contagious - keep the computation of paths on roads
-# wasn't entirely sure where is the path computation so i've comeented everything
-def create_routines(agents_reg,G):
-    nodes = np.array(G.nodes())
-    g = nx.to_scipy_sparse_matrix(G) # convert to scipy sparse matrix - faster route calculations
-    dists = shortest_path(g, directed=True, return_predecessors=False) # get shortest paths between all nodes
-    np.fill_diagonal(dists, np.inf) # distance from node to self is infinity
+def create_routines(agents_reg, calculate_distances=True):
+    nodes = np.array(gv.graph.nodes())
+    g = nx.to_scipy_sparse_matrix(gv.graph) # convert to scipy sparse matrix - faster route calculations
+    if calculate_distances:
+        gv.dists = shortest_path(g, directed=True, return_predecessors=False) # get shortest paths between all nodes
+        np.fill_diagonal(gv.dists, np.inf) # distance from node to self is infinity
     bld_visits_by_agents = []
     for n in range(len(agents_reg)):
         a = agents_reg[n, 0]
         current_position = agents_reg[n, 1]
-        a_nodes = nodes[(dists[np.where(nodes==a)][0]<a_dist) & (np.isin(nodes, gv.bldgs[:, 0]))] # buildings within distance<1 from a
+        a_nodes = nodes[(gv.dists[np.where(nodes==a)][0]<a_dist) & (np.isin(nodes, gv.bldgs[:, 0]))] # buildings within distance<1 from a
         visits = [current_position]
         for i in agents_reg[n, 2:]:
             if ~np.isnan(i):
-                i_nodes = nodes[(dists[:, np.where(nodes==i)[0][0]]<bld_dist) & (nodes<4000000)] # buildings within bld_dist from i
+                i_nodes = nodes[(gv.dists[:, np.where(nodes==i)[0][0]]<bld_dist) & (nodes<4000000)] # buildings within bld_dist from i
                 for j in range(k):
                     if np.random.randint(2) > 0:
-                        c_nodes = nodes[(dists[np.where(nodes==current_position)][0]<bld_dist) &
+                        c_nodes = nodes[(gv.dists[np.where(nodes==current_position)][0]<bld_dist) &
                                         (nodes<4000000)] # buildings within bld_dist from current position
                         intersect = np.intersect1d(i_nodes, c_nodes)
                         union = np.union1d(intersect, a_nodes)
@@ -127,6 +124,7 @@ def create_routines(agents_reg,G):
     bld_visits_by_agents = zero
     bld_visits_by_agents[bld_visits_by_agents==0] = np.nan
     del zero
+    return bld_visits_by_agents
     
     # path = []
     # hh = gv.households[gv.households[:, 0] == gv.indivs[i, 1].astype(int)][0]
