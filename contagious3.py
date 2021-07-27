@@ -191,7 +191,7 @@ for sim in range(1,31):
             
         agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5)| (agents[:, 13] == 5), 17] = day - agents[(agents[:, 13] == 2) | (agents[:, 13] == 4) | (agents[:, 13] == 3.5) | (agents[:, 13] == 5), 16] # update number of days since infecton for carriers
         agents[(agents[:, 13] == 3) | (agents[:, 13] == 3.5) | (agents[:, 13] == 4), 20] = day - agents[(agents[:, 13] == 3)  | (agents[:, 13] == 3.5) | (agents[:, 13] == 4), 19] # update number of days since quarantine for carriers
-        #agents[(agents[:, 13] == 5), 25] = day - agents[(agents[:, 13] == 5), 24] # update number of days since admission
+        agents[(agents[:, 13] == 5), 25] = day - agents[(agents[:, 13] == 5), 24] # update number of days since admission
         
         infected = np.where((agents[:,13]==2) | (agents[:,13]==4) | (agents[:, 13]==3.5))[0]
         uninfected = np.where((agents[:,13]<2) | (agents[:,13]==3))[0]
