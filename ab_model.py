@@ -7,6 +7,7 @@ import math
 from scipy.stats import norm, percentileofscore
 from time import time
 import gc
+from epidemiological_model import run_EM
 
 
 def leave_town(h_idx, b_idx):
@@ -246,7 +247,7 @@ def find_wp(i):
             [mp.events_set[k] <= gv.tick < mp.events_set[k] + mp.lags['labor_market'] for k in range(len(mp.events_set))]):
         av_jobs = np.where(np.isnan(gv.jobs[:, 2]).astype(float))[0]
         home = gv.bldgs[gv.bldgs[:, 0] == gv.households[gv.households[:, 0] == gv.indivs[i, 1], 1]][0]
-        idx = np.where(array(gv.graph.nodes()) == gv.indivs[i, 0])[0]
+        idx = np.where(np.array(gv.graph.nodes()) == gv.indivs[i, 0])[0]
         max_d = np.max(np.ma.masked_invalid(gv.dists[idx]))
         min_w = np.min(gv.jobs[av_jobs, 0])
         max_w = np.max(gv.jobs[av_jobs, 0])
@@ -464,9 +465,9 @@ def general_step():
     
     for i in range(len(gv.indivs)):
         i_step(i)
+    
         
-        # TODO - create epidemological function including all relevant functions:
-        # building visits, counter, contagion, quarantine, hospitalization, death, R
+    run_EM()
     
     # freed = False
     # for r in range(len(gv.roads)):
@@ -497,7 +498,7 @@ def general_step():
     #    compute_network()
     
     for b in range(len(gv.bldgs)):    
-        # TODO - identify buildings within 100m from b, compute the avrage of mean_visits in these buildings
+        # TODO - identify buildings within 100m from b, compute the average of mean_visits in these buildings
         # and save into a variable called nearby_visits
         #nearby_traffic = gv.roads[(np.all(gv.roads_juncs[:, 0] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)) |
         #                          (np.all(gv.roads_juncs[:, 1] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)), 8]
@@ -536,10 +537,10 @@ def general_step():
     
     gv.avg_incms.append(mp.avgIncome)
     
-    print gv.tick, round(time() - t, 2), len(gv.bldgs[gv.bldgs[:, 1] == 0]),
-    print len(gv.bldgs[gv.bldgs[:, 1] == 1]), len(gv.bldgs[gv.bldgs[:, 1] == 3]), len(gv.bldgs[gv.bldgs[:, 1] == 4]),
-    print len(gv.households), len(gv.indivs), np.mean(gv.indivs[:, 8])#, np.mean(gv.traff_hist[:, -1]),
-    print np.std(gv.traff_hist[:, -1], ddof=1)
+    print (gv.tick, round(time() - t, 2), len(gv.bldgs[gv.bldgs[:, 1] == 0]))
+    print (len(gv.bldgs[gv.bldgs[:, 1] == 1]), len(gv.bldgs[gv.bldgs[:, 1] == 3]), len(gv.bldgs[gv.bldgs[:, 1] == 4]))
+    print (len(gv.households), len(gv.indivs), np.mean(gv.indivs[:, 8]))#, np.mean(gv.traff_hist[:, -1]),
+    print (np.std(gv.traff_hist[:, -1], ddof=1))
     
     gc.collect()
 

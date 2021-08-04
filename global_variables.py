@@ -24,6 +24,20 @@ i_vacancies = None
 i_value = None
 changedLU = False
 bldgs_visits_dist = None
+bld_visits_by_agents = None
+bld_visits = None
+infected = None
+uninfected = None
+admitted = None
+unadmitted = None
+infected_quar = None
+infected_blds = None
+uninfected_blds = None
+new_admissions = None
+new_deaths = None
+interaction_prob = None
+nodes = None
+
 
 # input files
 # zonesFile = 'data/zones_wgs_np.csv'

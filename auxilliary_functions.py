@@ -91,7 +91,9 @@ def get_path(o, d):
 
 
 def create_routines(agents_reg, calculate_distances=True):
-    nodes = np.array(gv.graph.nodes())
+    gv.nodes = np.array(gv.graph.nodes())
+    gv.interaction_prob = np.exp(-gv.dists[np.where(np.isin(gv.nodes, gv.indivs[:, 0]))[0]][:,
+                                    np.where(np.isin(gv.nodes, gv.indivs[:, 0]))[0]])
     g = nx.to_scipy_sparse_matrix(gv.graph) # convert to scipy sparse matrix - faster route calculations
     if calculate_distances:
         gv.dists = shortest_path(g, directed=True, return_predecessors=False) # get shortest paths between all nodes
@@ -100,15 +102,15 @@ def create_routines(agents_reg, calculate_distances=True):
     for n in range(len(agents_reg)):
         a = agents_reg[n, 0]
         current_position = agents_reg[n, 1]
-        a_nodes = nodes[(gv.dists[np.where(nodes==a)][0]<a_dist) & (np.isin(nodes, gv.bldgs[:, 0]))] # buildings within distance<1 from a
+        a_nodes = gv.nodes[(gv.dists[np.where(gv.nodes==a)][0]<a_dist) & (np.isin(gv.nodes, gv.bldgs[:, 0]))] # buildings within distance<1 from a
         visits = [current_position]
         for i in agents_reg[n, 2:]:
             if ~np.isnan(i):
-                i_nodes = nodes[(gv.dists[:, np.where(nodes==i)[0][0]]<bld_dist) & (nodes<4000000)] # buildings within bld_dist from i
+                i_nodes = gv.nodes[(gv.dists[:, np.where(gv.nodes==i)[0][0]]<bld_dist) & (gv.nodes<4000000)] # buildings within bld_dist from i
                 for j in range(k):
                     if np.random.randint(2) > 0:
-                        c_nodes = nodes[(gv.dists[np.where(nodes==current_position)][0]<bld_dist) &
-                                        (nodes<4000000)] # buildings within bld_dist from current position
+                        c_nodes = gv.nodes[(gv.dists[np.where(gv.nodes==current_position)][0]<bld_dist) &
+                                        (gv.nodes<4000000)] # buildings within bld_dist from current position
                         intersect = np.intersect1d(i_nodes, c_nodes)
                         union = np.union1d(intersect, a_nodes)
                         current_position = choice(union)

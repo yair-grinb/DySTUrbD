@@ -50,12 +50,7 @@ def create_world():
     # gv.indivs[(gv.indivs[:, 3] == 0) & (gv.indivs[:, 5] == 1), 3] = 1
     # gv.indivs[(gv.indivs[:, 3] == 1) & (gv.indivs[:, 6] == 0), 6] = 1
     
-    agents, households, build, jobs = create_data('data/civ_withCar_bldg_np.csv', 'data/bldg_with_inst_orig.csv')
-    
-    gv.indivs = agents
-    gv.households = households
-    gv.bldgs = build
-    gv.jobs = jobs
+    gv.indivs, gv.households, gv.bldgs, gv.jobs = create_data('data/civ_withCar_bldg_np.csv', 'data/bldg_with_inst_orig.csv')
     
     # compute parameter values
     mp.avgAge = np.mean(gv.indivs[:, 4])
@@ -162,7 +157,6 @@ def create_world():
     # create routines
     print ('creating routines', time() - t)
     gv.routines = dict(zip(gv.indivs[:, 0], create_routines(agents_reg)))
-    
     mp.worker_residing_outside = len(gv.jobs[gv.jobs[:, 2] == 0, 3]) * 1. / len(gv.jobs)
     
     print ('computing building values', time() - t)
