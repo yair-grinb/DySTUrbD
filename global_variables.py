@@ -37,7 +37,7 @@ new_admissions = None
 new_deaths = None
 interaction_prob = None
 nodes = None
-
+bld_dists = None
 
 # input files
 # zonesFile = 'data/zones_wgs_np.csv'

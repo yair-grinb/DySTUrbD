@@ -177,5 +177,7 @@ def create_world():
     for r in gv.roads: 
         gv.rds_civs[r[0]] = []
     
+    gv.bld_dists = ((gv.bldgs[:, np.newaxis, 6] - gv.bldgs[:, 6]) ** 2. + (gv.bldgs[:, np.newaxis, 7] - gv.bldgs[:, 7]) ** 2.) ** 0.5
+    
     print ('world created', time() - t)
     

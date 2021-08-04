@@ -8,6 +8,7 @@ from scipy.stats import norm, percentileofscore
 from time import time
 import gc
 from epidemiological_model import run_EM
+import scipy.spatial as spatial
 
 
 def leave_town(h_idx, b_idx):
@@ -52,12 +53,15 @@ def compute_diff(hh, b):
         diff_inc = norm.pdf((hh[2] - mean_inc) / std_inc, 0, 1)
         soc_diff = (diff_age / norm.pdf(0, 0, 1) + diff_inc / norm.pdf(0, 0, 1)) / 2.    
     
-    members_jobs = members[members[:, 5] == 1, 7]
-    if len(members_jobs) > 0:
-        jobs_juncs = gv.bldgs[gv.jobs[np.in1d(gv.jobs[:, -1], members_jobs), 1].astype(int), 13]
-        # TODO - get indices from nodes and replace current references to these
-        mean_commute = np.mean(np.ma.masked_invalid(gv.dists[b[13]][jobs_juncs.astype(int)]))
-        dist_score = mean_commute / np.max(np.ma.masked_invalid(gv.dists[b[13]]))
+    # members_jobs = members[members[:, 5] == 1, 7]
+    # if len(members_jobs) > 0:
+    #     jobs_juncs = gv.bldgs[gv.jobs[np.in1d(gv.jobs[:, -1], members_jobs), 1].astype(int), 13]
+    #     # TODO - get indices from nodes and replace current references to these
+    #     mean_commute = np.mean(np.ma.masked_invalid(gv.dists[b[13]][jobs_juncs.astype(int)]))
+
+        members_dist = np.sum(spatial.distance_matrix(members[:, [7,12]],members[:, [7,12]])) + np.sum(spatial.distance_matrix(members[:, [7,18]],members[:, [7,18]]))
+        mean_commute = members_dist/len(members)
+        dist_score = mean_commute / np.max(spatial.distance_matrix(gv.bldgs[:, 6:8], gv.bldgs[:, 6:8])) # replace with max f gv.bld_dists for index of b
     
     return soc_diff, dist_score
 
@@ -235,7 +239,7 @@ def hh_step(h_idx):
             for i in np.where(gv.indivs[:, 1] == gv.households[h_idx, 0])[0]:
                 # TODO - create edge between agent and building and remove edge to previous home and change column 7 accordingly
                 # adjust create routines
-                create_routines(i)
+                create_routines(gv.indivs[i, [0,7,12,18,7]])
             return False
         else:
             return True
@@ -268,9 +272,9 @@ def find_wp(i):
                 gv.data.append(['j', gv.tick, gv.jobs[j, -1], gv.bldgs[gv.jobs[j, 1].astype(int), 0],
                                 gv.bldgs[gv.jobs[j, 1].astype(int), 0], np.nan, gv.indivs[i, 0], gv.jobs[j, 0]])
                 gv.jobs[j, 2] = gv.indivs[i, 0]
-                # TODO - add edge between agent and job's building, update column 12, recalculate distances, recalculate distances
+                # TODO - add edge between agent and job's building, update column 12, recalculate distances
                 # adjust create routines
-                create_routines(i)
+                create_routines(gv.indivs[i, [0,7,12,18,7]])
                 break
             av_jobs = np.delete(av_jobs, j_ix, 0)
 
@@ -343,6 +347,7 @@ def in_migration():
     
     h_id = np.max(gv.households[:, 0]) + 1
     for i in range(immig):
+        # TODO - defne religiousness
         hh = [h_id, np.nan, np.random.normal(np.mean(gv.households[:, 2]), np.std(gv.households[:, 2], ddof=1)),
               1. * (random.random() < mp.carChance)]
         while hh[1] <= 0:
@@ -388,7 +393,8 @@ def in_migration():
                         gv.indivs[k, [3, 5]] = [0, 0]
                     elif gv.indivs[k, 7] == 0:
                         gv.indivs[k, 5] = 0
-                # TODO - integrate agent into network by creating edges to the most similar agents and to home, workplace, etc., recalculate distances
+                # TODO - for children - add schools, add secondary anchor actvity
+                # TODO - integrate agent into network by creating edges to the most similar agents and to home and anchor activities, recalculate distances
                 # adjust create routines
                 create_routines(k)
                 gv.data.append(['i_im', gv.tick] + list(gv.indivs[k]))

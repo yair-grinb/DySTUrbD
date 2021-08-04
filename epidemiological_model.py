@@ -149,8 +149,8 @@ def agents_update():
         gv.indivs[(gv.indivs[:, 13] == 4) & (gv.indivs[:, 17] == recover), 13] = 6 
         # admission end with recovery
         gv.indivs[(gv.indivs[:, 13] == 5) & (gv.indivs[:, 17] == hospital_recover), 13] = 6 
-        # infection count reset for unisolated agents - ask Yair - is it necessary?
-        # gv.indivs[(gv.indivs[:, 13] == 1) | (gv.indivs[:, 13] == 2) | (gv.indivs[:, 13] == 6) | (gv.indivs[:, 13] == 7), 17] = 0
+        # infection count reset for unisolated agents - ask Yair - is it necessary?SS
+        #gv.indivs[(gv.indivs[:, 13] == 1) | (gv.indivs[:, 13] == 2) | (gv.indivs[:, 13] == 6) | (gv.indivs[:, 13] == 7), 17] = 0
         # quararntine count reset for unisolated agents
         gv.indivs[(gv.indivs[:, 13] == 1) | (gv.indivs[:, 13] == 2) | (gv.indivs[:, 13] == 6) | (gv.indivs[:, 13] == 7), 20] = 0 
         # admissions count reset for unisolated agents
