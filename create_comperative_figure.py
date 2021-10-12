@@ -46,7 +46,7 @@ for c in range(len(columns)):
     for n in range(len(names)):
         row = int(c/2)
         col = c-row*2
-        if n < 3:
+        if n < 2:
             l = sns.lineplot(data=dfs[names[n]], x='Timestamp', y=columns[c], ax=axs[row][col], color=colors[c], 
                              label=legend_names[n])  
             axs[row][col].lines[n].set_linestyle(styles[n])
