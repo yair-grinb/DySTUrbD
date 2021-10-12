@@ -1,6 +1,7 @@
 import numpy as np
 import global_variables as gv
 import model_parameters as mp
+import networkx as nx
 import random
 from auxilliary_functions import compute_network, create_routines, compute_building_value
 import math
@@ -61,7 +62,8 @@ def compute_diff(hh, b):
 
         members_dist = np.sum(spatial.distance_matrix(members[:, [7,12]],members[:, [7,12]])) + np.sum(spatial.distance_matrix(members[:, [7,18]],members[:, [7,18]]))
         mean_commute = members_dist/len(members)
-        dist_score = mean_commute / np.max(spatial.distance_matrix(gv.bldgs[:, 6:8], gv.bldgs[:, 6:8])) # replace with max f gv.bld_dists for index of b
+        gv.bld_dists = spatial.distance_matrix(gv.bldgs[:, 6:8], gv.bldgs[:, 6:8])
+        dist_score = mean_commute / max(gv.bld_dists) # replace with max f gv.bld_dists for index of b
     
     return soc_diff, dist_score
 
@@ -150,6 +152,8 @@ def change_lu(b, old, new):
                     gv.data.append(['i', gv.tick, gv.indivs[e, 0], gv.households[gv.households[:, 0] == gv.indivs[e, 1], 0], 
                                     1, 1, 1, 0, 1, 0, gv.indivs[e, 11], 0., gv.indivs[e, 7], np.nan])
                     # TODO - remove edge between agent and building and change column 12 to None
+                    gv.graph.remove_edge(gv.indivs[e, 0], gv.indivs[e, 12])
+                    gv.indivs[e, 12] = np.nan
                     gv.routines[gv.indivs[e, 0]] = create_routines(gv.indivs[e, [0, 7, 12, 18, 7]], True)
                 gv.indivs[emp_in_b[:, None], [3, 5, 7, 11]] = np.repeat([[0, 0, np.nan, 0]], len(emp_in_b), axis=0)
             for j in jobs_in_b:
@@ -238,6 +242,9 @@ def hh_step(h_idx):
                                 gv.bldgs[gv.bldgs[:, 0] == gv.households[h_idx, 1], 12]])
             for i in np.where(gv.indivs[:, 1] == gv.households[h_idx, 0])[0]:
                 # TODO - create edge between agent and building and remove edge to previous home and change column 7 accordingly
+                gv.graph.add_edge(gv.indivs[i,0],gv.households[h_idx, 1])
+                gv.graph.remove_edge(gv.indivs[i,0], gv.indivs[i, 7])
+                gv.indivs[i,7] = gv.households[h_idx, 1]
                 # adjust create routines
                 create_routines(gv.indivs[i, [0,7,12,18,7]])
             return False
@@ -273,6 +280,9 @@ def find_wp(i):
                                 gv.bldgs[gv.jobs[j, 1].astype(int), 0], np.nan, gv.indivs[i, 0], gv.jobs[j, 0]])
                 gv.jobs[j, 2] = gv.indivs[i, 0]
                 # TODO - add edge between agent and job's building, update column 12, recalculate distances
+                gv.graph.add_edge(gv.indivs[i,0], gv.bldgs[gv.jobs[j, 1].astype(int),0])
+                gv.indivs[i,12] = gv.bldgs[gv.jobs[j, 1].astype(int),0]
+                gv.bld_dists = spatial.distance_matrix(gv.bldgs[:, 6:8], gv.bldgs[:, 6:8])
                 # adjust create routines
                 create_routines(gv.indivs[i, [0,7,12,18,7]])
                 break
@@ -347,7 +357,7 @@ def in_migration():
     
     h_id = np.max(gv.households[:, 0]) + 1
     for i in range(immig):
-        # TODO - defne religiousness
+        # TODO - define religiousness
         hh = [h_id, np.nan, np.random.normal(np.mean(gv.households[:, 2]), np.std(gv.households[:, 2], ddof=1)),
               1. * (random.random() < mp.carChance)]
         while hh[1] <= 0:
