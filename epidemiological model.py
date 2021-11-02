@@ -134,7 +134,8 @@ def calculate_infections(agents,tick,infected_blds,uninfected_blds,interaction_p
         agents[uninfected[new_quarantined_infected], 16] = tick
         # this allows tracing infection chains - who infected whom and when
         agents[uninfected[np.where(infections)[0]], 21] = agents[infected[np.where(infections)[1]], 0]
-        return agents, 
+        return agents
+    
     
     
     
