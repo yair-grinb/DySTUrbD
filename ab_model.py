@@ -1,6 +1,7 @@
 import numpy as np
 import global_variables as gv
 import model_parameters as mp
+from parameters import jobs_per_m, avgIncome, stdIncome, infection_prob, admission_prob, mortality_prob
 import networkx as nx
 import random
 from auxilliary_functions import compute_network, create_routines, compute_building_value
@@ -101,7 +102,10 @@ def find_new_home(h_idx, in_mig):
                     # output - 'h', tick, id, building id old, building id new
                     gv.data.append(['h', gv.tick, gv.households[h_idx, 0], gv.households[h_idx, 1], gv.bldgs[b, 0]])
                 gv.households[h_idx, 1] = gv.bldgs[b, 0]
-                #TODO - find all agents within a household and update SA
+                # find all agents within a household and update SA
+                for a in gv.indivs:    
+                    if gv.indivs[a, 1] == gv.households[h_idx, 0]:
+                        gv.indivs[a, 22] = gv.bldgs[b, 3]
                 return True
             i += 1
             choice_set = np.delete(choice_set, bi, 0)
@@ -146,7 +150,6 @@ def change_lu(b, old, new):
                     # job new
                     gv.data.append(['i', gv.tick, gv.indivs[e, 0], gv.households[gv.households[:, 0] == gv.indivs[e, 1], 0], 
                                     1, 1, 1, 0, 1, 0, gv.indivs[e, 11], 0., gv.indivs[e, 9], np.nan])
-                    # TODO - remove edge between agent and building and change column 12 to None - DONE
                     gv.graph.remove_edge(gv.indivs[e, 0], gv.indivs[e, 12])
                     gv.indivs[e, 12] = np.nan
                     gv.routines[gv.indivs[e, 0]] = create_routines(gv.indivs[e, [0, 7, 12, 18, 7]], True)
@@ -319,7 +322,52 @@ def in_migration():
             k = random.random()
             ind = [civ_id, h_id, 1. * (random.random() < mp.disChance), 0,
                    3. - 1 * (k < mp.age2chance) - 1 * (k < mp.age1chance), 0, 0, np.nan, hh[-1], np.nan, np.nan, np.nan, np.nan, 0, 0, 0, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, 0, np.nan, 0, 0, 0, 0]
-            #TODO - compute contagious risk by age, admission, mortality
+           
+            # compute contagious risk by age, admission, mortality:
+                
+            # add infection prob by age per agent
+            for inf in infection_prob:
+                ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1]), 14] = np.random.normal(inf[2], inf[3], len(ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1])]))
+                ind[ind[:, 14] < 0, 14] = 0
+            #add admission prob by age per agent
+            for inf in admission_prob:
+                ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1]), 23] = np.random.normal(inf[2], inf[3], len(ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1])]))
+                ind[ind[:, 23] < 0, 23] = 0
+            #add mortality prob by age per agent
+            for inf in mortality_prob:
+                ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1]), 26] = np.random.normal(inf[2], inf[3], len(ind[(ind[:, 4] >= inf[0]) & (ind[:, 4] < inf[1])])) 
+                ind[ind[:, 26] < 0, 26] = 0
+                
+            # inserting anchor activities for all non-working agents
+            
+            # all possible activities
+            elementry = gv.bldgs[gv.bldgs[:,9]==5310,0]
+            elementry_rel = gv.bldgs[gv.bldgs[:,9]==5312,0]
+            high_schools = gv.bldgs[gv.bldgs[:,9]==5338,0]
+            high_schools_rel = gv.bldgs[gv.bldgs[:,9]==5523,0]
+            high_schools_rel = gv.bldgs[gv.bldgs[:,9]==5525,0]
+            kinder = gv.bldgs[gv.bldgs[:,9]==5305,0]
+            kinder_rel = gv.bldgs[gv.bldgs[:,9]==5300,0]
+            religious = gv.bldgs[np.isin(gv.bldgs[:,9], [5501, 5521]), 0]
+            yeshiva = gv.bldgs[gv.bldgs[:,9]==5340,0]
+            etc = gv.bldgs[np.isin(gv.bldgs[:,9], 
+                                [6512, 6520, 6530, 6600, 5740, 5760, 5600, 5700, 5202, 5253]),0]
+            rel_etc = np.append(etc,religious)
+            
+            #inserting all non-working agents their activities
+            ind[(ind[:, 8] == 0) & (ind[:, 4] <19), 12] = np.random.choice(high_schools, len(ind[(ind[:, 8] == 0) & (ind[:, 4] <19)]))
+            ind[(ind[:, 8] == 0) & (ind[:, 4] <15), 12] = np.random.choice(elementry, len(ind[(ind[:, 8] == 0) & (ind[:, 4] <15)]))
+            ind[(ind[:, 8] == 0) & (ind[:, 4] <7), 12] = np.random.choice(kinder, len(ind[(ind[:, 8] == 0) & (ind[:, 4] <7)]))
+            ind[(ind[:, 8] == 1) & (ind[:, 4] < 25) & (np.isnan(ind[:, 12])), 12] = np.random.choice(yeshiva, len(ind[(ind[:, 8] == 1) & (ind[:, 4] < 25) & (np.isnan(ind[:, 12]))]))
+            ind[(ind[:, 8] == 1) & (ind[:, 4] < 19), 12] = np.random.choice(high_schools_rel, len(ind[(ind[:, 8] == 1) & (ind[:, 4] < 19)]))
+            ind[(ind[:, 8] == 1) & (ind[:, 4] < 15), 12] = np.random.choice(elementry_rel, len(ind[(ind[:, 8] == 1) & (ind[:, 4] < 15)]))
+            ind[(ind[:, 8] == 1) & (ind[:, 4] < 7), 12] = np.random.choice(kinder_rel, len(ind[(ind[:, 8] == 1) & (ind[:, 4] < 7)]))
+            ind[(np.isnan(ind[:, 12])) , 12] = np.random.choice(etc, len(ind[(np.isnan(ind[:, 12]))])) * np.random.randint(2, size=len(ind[np.isnan(ind[:, 12])]))
+            ind[ind[:, 12]==0, 12] = np.nan
+            ind[ind[:, 8] == 1, 18] = np.random.choice(rel_etc, len(ind[ind[:, 8] == 1])) * np.random.randint(2, size=len(ind[ind[:, 8] == 1]))
+            ind[ind[:, 8] == 0, 18] = np.random.choice(etc, len(ind[ind[:, 8] == 0])) * np.random.randint(2, size=len(ind[ind[:, 8] == 0]))
+            ind[ind[:, 18] == 0, 18] = np.nan
+            
             if j == 0:
                 ind[[3,4,5,6,9]] = [1, 3. - 1. * (k < mp.age2chance), ind[5], 1, 0]
             elif ind[4] > 1:
@@ -352,7 +400,7 @@ def in_migration():
                         gv.indivs[k, [3, 5]] = [0, 0]
                     elif gv.indivs[k, 9] == 0:
                         gv.indivs[k, 5] = 0
-                # TODO - for children - add schools, for all - add secondary anchor actvity
+
                 # TODO - integrate agent into network by creating edges to the most similar agents and to home and anchor activities, recalculate distances
                 # adjust create routines
                 create_routines(k)
@@ -435,20 +483,11 @@ def general_step():
     run_EM()
     
 
-    # TODO - get data from building visits instead of traffic
-    # count the number of times each building was visited (excluding home) using np.unique(bld_visits[:, 1:], return_counts=True)
-    # remember to exclude None
-    
-    # add one new empty column to gv.visits_hist
-    # populate the last column with the product of the above
-    
-    #visits = [j for i in gv.indivs[:, 0] for j in gv.routines[i]]
-    # visits_freq = np.unique(visits, return_counts=True)
-    #if len(visits_freq[1]) > 0:
-    #    gv.traff_hist[visits_freq[0], -1] += visits_freq[1]
-
-    if gv.tick > 30:
-        gv.visits_hist = gv.visits_hist[:, 1:]
+    # count number of visits in each building excluding home & null values
+    gv.visits_hist = np.unique(gv.bld_visits[:, 1:], return_counts=True)
+    gv.visits_hist = np.asarray((gv.visits_hist)).T
+    gv.visits_hist = gv.visits_hist[~np.isnan(gv.visits_hist).any(axis=1), :]
+    # calculate mean visits in each building
     mean_visits = np.mean(gv.visits_hist, axis=1) # average visits per building over last 30 iterations
 
     for b in range(len(gv.bldgs)):    

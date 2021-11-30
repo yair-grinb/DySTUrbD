@@ -38,6 +38,7 @@ new_deaths = None
 interaction_prob = None
 nodes = None
 bld_dists = None
+agents_reg = None
 
 # input files
 # zonesFile = 'data/zones_wgs_np.csv'
