@@ -402,7 +402,6 @@ def in_migration():
                         gv.indivs[k, 5] = 0
 
                 # TODO - integrate agent into network by creating edges to the most similar agents and to home and anchor activities, recalculate distances
-                # adjust create routines
                 create_routines(k)
                 gv.data.append(['i_im', gv.tick] + list(gv.indivs[k]))
             gv.households[-1, 2] = np.sum(gv.indivs[(gv.indivs[:, 1] == h_id) & (gv.indivs[:, 3] == 1), 11])
@@ -483,18 +482,21 @@ def general_step():
     run_EM()
     
 
-    # count number of visits in each building excluding home & null values
-    gv.visits_hist = np.unique(gv.bld_visits[:, 1:], return_counts=True)
-    gv.visits_hist = np.asarray((gv.visits_hist)).T
-    gv.visits_hist = gv.visits_hist[~np.isnan(gv.visits_hist).any(axis=1), :]
-    # calculate mean visits in each building
+    # creation of buildings visits history
+    gv.bld_visits = np.unique(gv.bld_visits[:, 1:], return_counts=True)
+    gv.bld_visits = np.asarray((gv.bld_visits)).T
+    gv.bld_visits = gv.bld_visits[~np.isnan(gv.bld_visits).any(axis=1), :]
+    gv.visits_hist = np.append(gv.visits_hist,gv.bld_visits,axis=1)
+    
+    if gv.tick > 30:
+        gv.visits_hist = gv.visits_hist[:, 1:]
     mean_visits = np.mean(gv.visits_hist, axis=1) # average visits per building over last 30 iterations
 
     for b in range(len(gv.bldgs)):    
         # TODO - identify buildings within 100m from b, compute the average of mean_visits in these buildings
         # and save into a variable called nearby_visits
-        #nearby_traffic = gv.roads[(np.all(gv.roads_juncs[:, 0] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)) |
-        #                          (np.all(gv.roads_juncs[:, 1] == gv.junctions_array[gv.bldgs[b, 13]], axis=1)), 8]
+        np.where(gv.bld_dists[b]<=100)[0]
+        nearby_visits = 
         gv.bldgs_visits_dist[b] = np.mean(nearby_visits)
     
     for b in range(len(gv.bldgs)):
