@@ -6,8 +6,8 @@ from parameters import jobs_per_m, avgIncome, stdIncome, infection_prob, admissi
 def create_data(ind_file, blds_file): 
     #import data
     agents = np.array(pd.read_csv(ind_file, header=None).values)
-    agents = agents[:, [0, 11, 2, 3, 6, 12, 3, 1]] # id, hh, dis, worker, age, workIn, wp_participant, building
-    agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1) # id, hh, dis, worker, age, workIn, wp_participant, building, religous(bin), job, expected income, actual income, job building
+    agents = agents[:, [0, 11, 2, 3, 6, 12, 3, 1]] # id, hh, dis, worker, age, workIn, wf_participant, building
+    agents = np.append(agents, np.zeros((len(agents), 5)), axis= 1) # id, hh, dis, worker, age, workIn, wp_participant, building, religous(bin), job ID, expected income, actual income, job building
     agents[:, [8, 9, 12]] = np.nan
     agents[agents[:, 4]==1, 3] = 0
     agents[agents[:, 4]==1, 5] = 0
@@ -26,7 +26,8 @@ def create_data(ind_file, blds_file):
         
     build=np.array(pd.read_csv(blds_file).values)
     build = build[:, [6, 2, 3, 12, 4, 2, 14, 15,17, 18]] # id, lu, floors, stat, fs, init_lu, x, y, USG group,USG code
-    build = np.append(build, np.ones((len(build), 1)), axis= 1) #building status (closed/open)
+    build = np.append(build, np.ones((len(build), 1)), axis= 1) # building status (closed/open)
+    build = np.append(build, np.zeros((len(build), 4)), axis= 1) # value, neigh. asstes, rent
     
     agents[agents[:, 4]==3, 4] = np.random.randint(66, 90, len(agents[agents[:, 4]==3]))
     agents[agents[:, 4]==2, 4] = np.random.randint(19, 65, len(agents[agents[:, 4]==2]))
@@ -86,8 +87,7 @@ def create_data(ind_file, blds_file):
     religious = build[np.isin(build[:,9], [5501, 5521]), 0]
     yeshiva = build[build[:,9]==5340,0]
     etc = build[np.isin(build[:,9], 
-                        [6512, 6520, 6530, 6600, 5740, 5760, 5600, 5700, 5202, 5253]),
-                0]
+                        [6512, 6520, 6530, 6600, 5740, 5760, 5600, 5700, 5202, 5253]),0]
     rel_etc = np.append(etc,religious)
     
     #inserting all non-working agents their activities
@@ -112,7 +112,7 @@ def create_data(ind_file, blds_file):
     agents = np.append(agents, epidemic, axis=1)
     
     #create more regular activities per agent
-    agents = np.append(agents, np.zeros((len(agents), 9)), axis= 1)
+    agents = np.append(agents, np.zeros((len(agents), 11)), axis= 1)
     agents[:,18] = np.nan
     agents[agents[:, 8] == 1, 18] = np.random.choice(rel_etc, len(agents[agents[:, 8] == 1])) * np.random.randint(2, size=len(agents[agents[:, 8] == 1]))
     agents[agents[:, 8] == 0, 18] = np.random.choice(etc, len(agents[agents[:, 8] == 0])) * np.random.randint(2, size=len(agents[agents[:, 8] == 0]))
