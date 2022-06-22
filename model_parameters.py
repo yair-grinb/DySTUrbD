@@ -28,3 +28,4 @@ search_length = 30
 alpha = 0.75
 beta = 0.25
 lags = {}  # "in_migration": 60}  # "labor_market": 60}
+#TODO - integrate long & short term parameters
