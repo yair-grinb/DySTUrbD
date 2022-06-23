@@ -10,7 +10,6 @@ The epidemiological model:
 4. parameters - the model's pararmeters.
 5. create_figures - figures which are created from the results of the simulations.	
 
-
 The model includes the following files:
 1. main.py - the script which calls on the functions for initiating and running the model and for saving outputs.
 2. model_parameters.py - this file details the parameters used to define dynamics in the model and their values.
