@@ -8,7 +8,7 @@ The epidemiological model:
 2. create_random_data - a script which takes the raw agents & buildings data and makes manipulations over it in order to create the final data which is used for calculations.
 3. communities - the creation of the social network.
 4. parameters - the model's pararmeters.
-5. create_figures - figures which are created from the results of the simulations.
+5. create_figures - figures which are created from the results of the simulations.	
 
 The model includes the following files:
 1. main.py - the script which calls on the functions for initiating and running the model and for saving outputs.
